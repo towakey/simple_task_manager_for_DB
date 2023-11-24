@@ -3,6 +3,7 @@
 import os
 import io
 import sys
+import datetime
 import configparser
 import cgi
 import cgitb
@@ -12,6 +13,8 @@ form = cgi.FieldStorage()
 mode = form.getfirst("mode", '')
 task = form.getfirst('task', '')
 content = form.getfirst('content', '')
+update_datetime = form.getfirst('update_datetime', '')
+state_select = form.getfirst('state_select', '')
 
 if __name__ == '__main__':
     print('Content-type: text/html; charset=UTF-8\r\n')
@@ -59,7 +62,7 @@ if __name__ == '__main__':
                     <a href="./index.py?mode=edit&task={file}" class="btn btn-primary">編集</a>
                 </div>
             </div>
-                """.format(file=file,create=config['DATA']['CREATE_DATA'],update=config['DATA']['UPDATE_DATA'],content=f.read().replace('\n', '<br>'), status=status))
+                """.format(file=file,create=datetime.datetime.strptime(config['DATA']['CREATE_DATA'], '%Y-%m-%dT%H:%M:%S').strftime('%Y-%m-%d %H:%M:%S'),update=datetime.datetime.strptime(config['DATA']['UPDATE_DATA'], '%Y-%m-%dT%H:%M:%S').strftime('%Y-%m-%d %H:%M:%S'),content=f.read().replace('\n', '<br>'), status=status))
         else:
             print("task not found")
 
@@ -73,16 +76,43 @@ if __name__ == '__main__':
         content = f.read()
         f.close()
         config = configparser.ConfigParser()
-        config.read('./task/'+task+'/config.ini')
+        config.read('./task/'+task+'/config.ini', encoding='cp932')
         create = config['DATA']['CREATE_DATA']
-        update = config['DATA']['UPDATE_DATA']
         status = ''
         if config['STATUS']['STATUS'] == 'CONTINUE':
             status = '継続'
+            status_html = """
+<label for="inputState" class="">状態</label>
+<select id="inputState" class="" name="state_select">
+    <option selected value="CONTINUE">継続</option>
+    <option value="COMPLETE">完了</option>
+</select>
+"""
         elif config['STATUS']['STATUS'] == 'COMPLETE':
             status = '完了'
+            status_html = """
+<label for="inputState" class="">状態</label>
+<select id="inputState" class="" name="state_select">
+    <option value="CONTINUE">継続</option>
+    <option selected value="COMPLETE">完了</option>
+</select>
+"""
         else:
             status = '状態不明'
+            status_html = """
+<label for="inputState" class="">状態</label>
+<select id="inputState" class="" name="state_select">
+    <option selected value="CONTINUE">継続</option>
+    <option value="COMPLETE">完了</option>
+</select>
+"""
+        
+        create_html = f"""
+作成日 : {datetime.datetime.strptime(create, "%Y-%m-%dT%H:%M:%S").strftime("%Y-%m-%d %H:%M:%S")}
+"""
+        update_html = f"""
+<input type="hidden" name="update_datetime" value="{datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")}">更新時間 : {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
+"""
 
         print("""
 <html>
@@ -102,7 +132,7 @@ if __name__ == '__main__':
                     {task}
                     </h2>
                     <h5 class="card-subtitle" style="height: 5%">
-                    作成日:{create} 更新日:{update} 状態:{status}
+                    {create_html} {update_html} {status_html}
                     </h5>
                     <div class="card-text" style="height: 90%">
                         <div class="input-group" style="height: 90%">
@@ -120,7 +150,7 @@ if __name__ == '__main__':
                 </div>
             </div>
             </form>
-        """.format(task=task, create=create, update=update, status=status, content=content))
+        """.format(task=task, create_html=create_html, update_html=update_html, status_html=status_html, content=content))
         print("""
         </div>
     </body>
@@ -128,7 +158,16 @@ if __name__ == '__main__':
         """)
     elif mode=="update":
         f = open('./task/'+task+'/contents.txt', 'w', encoding='UTF-8')
-        f.write(content)
+        f.write(str(content).replace('\r\n', '\n'))
         f.close()
+
+        config = configparser.ConfigParser()
+        config.optionxform = str
+        config.read('./task/'+task+'/config.ini', encoding='cp932')
+        config['DATA']['UPDATE_DATA'] = update_datetime
+        config['STATUS']['STATUS'] = state_select
+        with open('./task/'+task+'/config.ini', mode='w') as write_config:
+            config.write(write_config)
+
         url = ("http://" + os.environ['HTTP_HOST'] + os.environ['REQUEST_URI']).split("?")[0]
         print("<meta http-equiv=\"refresh\" content=\"0;URL="+url+"\">")
