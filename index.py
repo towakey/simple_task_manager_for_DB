@@ -192,7 +192,7 @@ if __name__ == '__main__':
         config.read('./task/'+update_task_id+'/config.ini', encoding=str_code)
         config['DATA']['UPDATE_DATA'] = update_update_datetime
         config['STATUS']['STATUS'] = update_state_select
-        with open('./task/'+update_task_id+'/config.ini', mode='w') as write_config:
+        with open('./task/'+update_task_id+'/config.ini', mode='w', encoding=str_code) as write_config:
             config.write(write_config)
 
         url = ("http://" + os.environ['HTTP_HOST'] + os.environ['REQUEST_URI']).split("?")[0]
