@@ -8,6 +8,7 @@ import configparser
 import cgi
 import cgitb
 import uuid
+import shutil
 
 cgitb.enable(display=1, logdir=None, context=5, format='html')
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
@@ -15,6 +16,7 @@ form = cgi.FieldStorage()
 mode = form.getfirst("mode", '')
 
 edit_task_id = form.getfirst('edit_task_id', '')
+delete_task_id = form.getfirst('delete_task_id', '')
 
 update_task_id = form.getfirst('update_task_id', '')
 update_update_datetime = form.getfirst('update_update_datetime', '')
@@ -78,6 +80,7 @@ if __name__ == '__main__':
                         {content}
                     </div>
                     <a href="./index.py?mode=edit&edit_task_id={file}" class="btn btn-primary">編集</a>
+                    <a href="./index.py?mode=delete&delete_task_id={file}" class="btn btn-danger">削除</a>
                 </div>
             </div>
                 """.format(file=file,task_name=task_name,create=datetime.datetime.strptime(config['DATA']['CREATE_DATA'], '%Y-%m-%dT%H:%M:%S').strftime('%Y-%m-%d %H:%M:%S'),update=datetime.datetime.strptime(config['DATA']['UPDATE_DATA'], '%Y-%m-%dT%H:%M:%S').strftime('%Y-%m-%d %H:%M:%S'),content=f.read().replace('\n', '<br>'), status=status))
@@ -269,5 +272,10 @@ if __name__ == '__main__':
         with open('./task/'+create_task_id+'/config.ini', mode='w', encoding=str_code) as write_config:
             config.write(write_config)
 
+        url = ("http://" + os.environ['HTTP_HOST'] + os.environ['REQUEST_URI']).split("?")[0]
+        print("<meta http-equiv=\"refresh\" content=\"0;URL="+url+"\">")
+
+    elif mode=="delete":
+        shutil.rmtree('./task/'+delete_task_id)
         url = ("http://" + os.environ['HTTP_HOST'] + os.environ['REQUEST_URI']).split("?")[0]
         print("<meta http-equiv=\"refresh\" content=\"0;URL="+url+"\">")
