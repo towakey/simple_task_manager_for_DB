@@ -13,9 +13,6 @@ cgitb.enable(display=1, logdir=None, context=5, format='html')
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 form = cgi.FieldStorage()
 mode = form.getfirst("mode", '')
-content = form.getfirst('content', '')
-update_datetime = form.getfirst('update_datetime', '')
-state_select = form.getfirst('state_select', '')
 
 edit_task_id = form.getfirst('edit_task_id', '')
 
@@ -162,7 +159,7 @@ if __name__ == '__main__':
                         </h5>
                         <div class="card-text" style="height: 90%">
                             <div class="input-group" style="height: 90%">
-                                <textarea class="form-control h-100" style="" name="content">{content}</textarea>
+                                <textarea class="form-control h-100" style="" name="update_content">{content}</textarea>
                             </div>
                             <div class="row align-items-end" style="height: 10%">
                                 <div class="col">
@@ -184,7 +181,7 @@ if __name__ == '__main__':
         """)
     elif mode=="update":
         f = open('./task/'+update_task_id+'/contents.txt', 'w', encoding=str_code)
-        f.write(str(content).replace('\r\n', '\n'))
+        f.write(str(update_content).replace('\r\n', '\n'))
         f.close()
 
         config = configparser.ConfigParser()
