@@ -48,8 +48,20 @@ if __name__ == '__main__':
         <script src="./js/bootstrap.bundle.js"></script>
     </head>
     <body>
+        <nav class="navbar navbar-expand-lg navbar-light bg-light">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="./index.py">simple_task_manager</a>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav">
+                        <li class="nav-item">
+                            <a class="nav-link" href="./index.py?mode=create">新規作成</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
         <div class="container">
-        """)
+""")
 
         if len(files_file) > 0:
             for file in files_file:
@@ -84,14 +96,8 @@ if __name__ == '__main__':
                 </div>
             </div>
                 """.format(file=file,task_name=task_name,create=datetime.datetime.strptime(config['DATA']['CREATE_DATA'], '%Y-%m-%dT%H:%M:%S').strftime('%Y-%m-%d %H:%M:%S'),update=datetime.datetime.strptime(config['DATA']['UPDATE_DATA'], '%Y-%m-%dT%H:%M:%S').strftime('%Y-%m-%d %H:%M:%S'),content=f.read().replace('\n', '<br>'), status=status))
-            print("""
-                    <a href="./index.py?mode=create" class="btn btn-primary">新規作成</a>
-""")
         else:
             print("task not found")
-            print("""
-                    <a href="./index.py?mode=create" class="btn btn-primary">新規作成</a>
-""")
 
         print("""
         </div>
@@ -150,6 +156,18 @@ if __name__ == '__main__':
         <script src="./js/bootstrap.bundle.js"></script>
     </head>
     <body>
+        <nav class="navbar navbar-expand-lg navbar-light bg-light">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="./index.py">simple_task_manager</a>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav">
+                        <li class="nav-item">
+                            <a class="nav-link" href="./index.py?mode=create">新規作成</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
         <div class="container mh-100">
             <form>
                 <div class="card h-100">
@@ -220,6 +238,18 @@ if __name__ == '__main__':
         <script src="./js/bootstrap.bundle.js"></script>
     </head>
     <body>
+        <nav class="navbar navbar-expand-lg navbar-light bg-light">
+            <div class="container-fluid">
+                <a class="navbar-brand" href="./index.py">simple_task_manager</a>
+                <div class="collapse navbar-collapse" id="navbarNav">
+                    <ul class="navbar-nav">
+                        <li class="nav-item">
+                            <a class="nav-link" href="./index.py?mode=create">新規作成</a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </nav>
         <div class="container mh-100">
         """)
         print("""
