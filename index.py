@@ -41,14 +41,8 @@ else:
     # IIS用
     REQUEST_URL = os.environ['UNENCODED_URL']
 
-if __name__ == '__main__':
-    print('Content-type: text/html; charset=UTF-8\r\n')
-    if mode == '':
-        task_folder_path = script_path + "/task"
-
-        files_file = [f for f in os.listdir(task_folder_path) if os.path.isdir(os.path.join(task_folder_path, f))]
-
-        print("""
+def header():
+    print("""
 <html lang="ja">
     <head>
         <meta charset="UTF-8">
@@ -68,6 +62,19 @@ if __name__ == '__main__':
                 </div>
             </div>
         </nav>
+""")
+
+
+if __name__ == '__main__':
+    print('Content-type: text/html; charset=UTF-8\r\n')
+    if mode == '':
+        task_folder_path = script_path + "/task"
+
+        files_file = [f for f in os.listdir(task_folder_path) if os.path.isdir(os.path.join(task_folder_path, f))]
+
+        header()
+
+        print("""
         <div class="container">
 """)
 
@@ -156,26 +163,9 @@ if __name__ == '__main__':
 <input type="hidden" name="update_update_datetime" value="{datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")}">更新時間 : {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
 """
 
+        header()
+
         print("""
-<html>
-    <head>
-        <meta charset="UTF-8">
-        <link rel="stylesheet" href="./css/bootstrap.css">
-        <script src="./js/bootstrap.bundle.js"></script>
-    </head>
-    <body>
-        <nav class="navbar navbar-expand-lg navbar-light bg-light">
-            <div class="container-fluid">
-                <a class="navbar-brand" href="./index.py">simple_task_manager</a>
-                <div class="collapse navbar-collapse" id="navbarNav">
-                    <ul class="navbar-nav">
-                        <li class="nav-item">
-                            <a class="nav-link" href="./index.py?mode=create">新規作成</a>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        </nav>
         <div class="container mh-100">
             <form>
                 <div class="card h-100">
@@ -238,28 +228,12 @@ if __name__ == '__main__':
         update_html = f"""
 <input type="hidden" name="create_update_datetime" value="{datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")}">更新時間 : {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}
 """
+
+        header()
+
         print("""
-<html>
-    <head>
-        <meta charset="UTF-8">
-        <link rel="stylesheet" href="./css/bootstrap.css">
-        <script src="./js/bootstrap.bundle.js"></script>
-    </head>
-    <body>
-        <nav class="navbar navbar-expand-lg navbar-light bg-light">
-            <div class="container-fluid">
-                <a class="navbar-brand" href="./index.py">simple_task_manager</a>
-                <div class="collapse navbar-collapse" id="navbarNav">
-                    <ul class="navbar-nav">
-                        <li class="nav-item">
-                            <a class="nav-link" href="./index.py?mode=create">新規作成</a>
-                        </li>
-                    </ul>
-                </div>
-            </div>
-        </nav>
         <div class="container mh-100">
-        """)
+""")
         print("""
             <form>
             <div class="card h-100">
