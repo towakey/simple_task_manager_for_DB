@@ -84,10 +84,13 @@ if __name__ == '__main__':
                 config = configparser.ConfigParser()
                 config.read(script_path + '/task/'+file+'/config.ini', encoding=str_code)
                 status = ''
+                card_color = ""
                 if config['STATUS']['STATUS'] == 'CONTINUE':
                     status = '継続'
+                    card_color = ""
                 elif config['STATUS']['STATUS'] == 'COMPLETE':
                     status = '完了'
+                    card_color = " text-bg-secondary"
                 else:
                     status = '状態不明'
 
@@ -97,7 +100,7 @@ if __name__ == '__main__':
                 f = open(script_path + '/task/'+file+'/contents.txt', 'r', encoding=str_code)
                 print("""
         <div class="container">
-            <div class="card">
+            <div class="card{card_color}">
                 <div class="card-body">
                     <h2 class="card-title">
                         {task_name}
@@ -113,7 +116,7 @@ if __name__ == '__main__':
                 </div>
             </div>
         </div>
-                """.format(file=file,task_name=task_name,create=datetime.datetime.strptime(config['DATA']['CREATE_DATA'], '%Y-%m-%dT%H:%M:%S').strftime('%Y-%m-%d %H:%M:%S'),update=datetime.datetime.strptime(config['DATA']['UPDATE_DATA'], '%Y-%m-%dT%H:%M:%S').strftime('%Y-%m-%d %H:%M:%S'),content=f.read().replace('\n', '<br>'), status=status))
+                """.format(card_color=card_color,file=file,task_name=task_name,create=datetime.datetime.strptime(config['DATA']['CREATE_DATA'], '%Y-%m-%dT%H:%M:%S').strftime('%Y-%m-%d %H:%M:%S'),update=datetime.datetime.strptime(config['DATA']['UPDATE_DATA'], '%Y-%m-%dT%H:%M:%S').strftime('%Y-%m-%d %H:%M:%S'),content=f.read().replace('\n', '<br>'), status=status))
         else:
             print("""
         <div class="container">
@@ -271,7 +274,7 @@ if __name__ == '__main__':
         """.format(uuid=uuid.uuid4(),create_html=create_html, update_html=update_html, status_html=status_html))
 
         footer()
-
+        
     elif mode=="write":
         os.mkdir(script_path + '/task/'+create_task_id)
         f = open(script_path + '/task/'+create_task_id+'/contents.txt', 'w', encoding=str_code)
