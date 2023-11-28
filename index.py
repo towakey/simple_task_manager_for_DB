@@ -64,6 +64,11 @@ def header():
         </nav>
 """)
 
+def footer():
+    print("""
+    </body>
+</html>
+""")
 
 if __name__ == '__main__':
     print('Content-type: text/html; charset=UTF-8\r\n')
@@ -73,10 +78,6 @@ if __name__ == '__main__':
         files_file = [f for f in os.listdir(task_folder_path) if os.path.isdir(os.path.join(task_folder_path, f))]
 
         header()
-
-        print("""
-        <div class="container">
-""")
 
         if len(files_file) > 0:
             for file in files_file:
@@ -95,6 +96,7 @@ if __name__ == '__main__':
                 content=""
                 f = open(script_path + '/task/'+file+'/contents.txt', 'r', encoding=str_code)
                 print("""
+        <div class="container">
             <div class="card">
                 <div class="card-body">
                     <h2 class="card-title">
@@ -110,15 +112,23 @@ if __name__ == '__main__':
                     <a href="./index.py?mode=delete&delete_task_id={file}" class="btn btn-danger">削除</a>
                 </div>
             </div>
+        </div>
                 """.format(file=file,task_name=task_name,create=datetime.datetime.strptime(config['DATA']['CREATE_DATA'], '%Y-%m-%dT%H:%M:%S').strftime('%Y-%m-%d %H:%M:%S'),update=datetime.datetime.strptime(config['DATA']['UPDATE_DATA'], '%Y-%m-%dT%H:%M:%S').strftime('%Y-%m-%d %H:%M:%S'),content=f.read().replace('\n', '<br>'), status=status))
         else:
-            print("task not found")
-
-        print("""
+            print("""
+        <div class="container">
+            <div class="card">
+                <div class="card-body">
+                    <div class="card-text">
+                        Task not found
+                    </div>
+                </div>
+            </div>
         </div>
-    </body>
-</html>
-        """)
+""")
+            
+        footer()
+
     elif mode=="edit":
         f = open(script_path + '/task/'+edit_task_id+'/contents.txt', 'r', encoding=str_code)
         content = f.read()
@@ -192,12 +202,11 @@ if __name__ == '__main__':
                     </div>
                 </div>
             </form>
-        """.format(edit_task_id=edit_task_id, task_name=task_name, create_html=create_html, update_html=update_html, status_html=status_html, content=content))
-        print("""
         </div>
-    </body>
-</html>
-        """)
+        """.format(edit_task_id=edit_task_id, task_name=task_name, create_html=create_html, update_html=update_html, status_html=status_html, content=content))
+
+        footer()
+
     elif mode=="update":
         f = open(script_path + '/task/'+update_task_id+'/contents.txt', 'w', encoding=str_code)
         f.write(str(update_content).replace('\r\n', '\n'))
@@ -233,39 +242,36 @@ if __name__ == '__main__':
 
         print("""
         <div class="container mh-100">
-""")
-        print("""
             <form>
-            <div class="card h-100">
-                <div class="card-body h-100">
-                    <h2 class="card-title" style="height: 5%">
-                        <input type="hidden" name="create_task_id" value="{uuid}" />
-                        タスク名<input type="text" name="create_task_name"></input>
-                    </h2>
-                    <h5 class="card-subtitle" style="height: 5%">
-                    {create_html} {update_html} {status_html}
-                    </h5>
-                    <div class="card-text" style="height: 90%">
-                        <div class="input-group" style="height: 90%">
-                            <textarea class="form-control h-100" style="" name="create_content"></textarea>
-                        </div>
-                        <div class="row align-items-end" style="height: 10%">
-                            <div class="col">
-                                <div class="d-grid gap-2">
-                                    <button type="submit" class="btn btn-primary btn-block" name="mode" value="write">作成ボタン</button>
+                <div class="card h-100">
+                    <div class="card-body h-100">
+                        <h2 class="card-title" style="height: 5%">
+                            <input type="hidden" name="create_task_id" value="{uuid}" />
+                            タスク名<input type="text" name="create_task_name"></input>
+                        </h2>
+                        <h5 class="card-subtitle" style="height: 5%">
+                        {create_html} {update_html} {status_html}
+                        </h5>
+                        <div class="card-text" style="height: 90%">
+                            <div class="input-group" style="height: 90%">
+                                <textarea class="form-control h-100" style="" name="create_content"></textarea>
+                            </div>
+                            <div class="row align-items-end" style="height: 10%">
+                                <div class="col">
+                                    <div class="d-grid gap-2">
+                                        <button type="submit" class="btn btn-primary btn-block" name="mode" value="write">作成ボタン</button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
             </form>
-        """.format(uuid=uuid.uuid4(),create_html=create_html, update_html=update_html, status_html=status_html))
-        print("""
         </div>
-    </body>
-</html>
-        """)
+        """.format(uuid=uuid.uuid4(),create_html=create_html, update_html=update_html, status_html=status_html))
+
+        footer()
+
     elif mode=="write":
         os.mkdir(script_path + '/task/'+create_task_id)
         f = open(script_path + '/task/'+create_task_id+'/contents.txt', 'w', encoding=str_code)
