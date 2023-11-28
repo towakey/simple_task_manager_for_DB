@@ -35,6 +35,12 @@ str_code = "utf-8"
 
 script_path = os.path.dirname(__file__)
 
+if 'REQUEST_URI' in os.environ:
+    REQUEST_URL = os.environ['REQUEST_URI']
+else:
+    # IIS用
+    REQUEST_URL = os.environ['UNENCODED_URL']
+
 if __name__ == '__main__':
     print('Content-type: text/html; charset=UTF-8\r\n')
     if mode == '':
@@ -215,7 +221,7 @@ if __name__ == '__main__':
         with open(script_path + '/task/'+update_task_id+'/config.ini', mode='w', encoding=str_code) as write_config:
             config.write(write_config)
 
-        url = ("http://" + os.environ['HTTP_HOST'] + os.environ['REQUEST_URI']).split("?")[0]
+        url = ("http://" + os.environ['HTTP_HOST'] + REQUEST_URL).split("?")[0]
         print("<meta http-equiv=\"refresh\" content=\"0;URL="+url+"\">")
 
     elif mode=="create":
@@ -304,10 +310,10 @@ if __name__ == '__main__':
         with open(script_path + '/task/'+create_task_id+'/config.ini', mode='w', encoding=str_code) as write_config:
             config.write(write_config)
 
-        url = ("http://" + os.environ['HTTP_HOST'] + os.environ['REQUEST_URI']).split("?")[0]
+        url = ("http://" + os.environ['HTTP_HOST'] + REQUEST_URL).split("?")[0]
         print("<meta http-equiv=\"refresh\" content=\"0;URL="+url+"\">")
 
     elif mode=="delete":
         shutil.rmtree(script_path + '/task/'+delete_task_id)
-        url = ("http://" + os.environ['HTTP_HOST'] + os.environ['REQUEST_URI']).split("?")[0]
+        url = ("http://" + os.environ['HTTP_HOST'] + REQUEST_URL).split("?")[0]
         print("<meta http-equiv=\"refresh\" content=\"0;URL="+url+"\">")
