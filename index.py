@@ -33,10 +33,12 @@ create_content = form.getfirst('create_content', '')
 
 str_code = "utf-8"
 
+script_path = os.path.dirname(__file__)
+
 if __name__ == '__main__':
     print('Content-type: text/html; charset=UTF-8\r\n')
     if mode == '':
-        task_folder_path = "./task"
+        task_folder_path = script_path + "/task"
 
         files_file = [f for f in os.listdir(task_folder_path) if os.path.isdir(os.path.join(task_folder_path, f))]
 
@@ -66,7 +68,7 @@ if __name__ == '__main__':
         if len(files_file) > 0:
             for file in files_file:
                 config = configparser.ConfigParser()
-                config.read('./task/'+file+'/config.ini', encoding=str_code)
+                config.read(script_path + '/task/'+file+'/config.ini', encoding=str_code)
                 status = ''
                 if config['STATUS']['STATUS'] == 'CONTINUE':
                     status = '継続'
@@ -78,7 +80,7 @@ if __name__ == '__main__':
                 task_name = config['STATUS']['NAME']
 
                 content=""
-                f = open('./task/'+file+'/contents.txt', 'r', encoding=str_code)
+                f = open(script_path + '/task/'+file+'/contents.txt', 'r', encoding=str_code)
                 print("""
             <div class="card">
                 <div class="card-body">
@@ -105,11 +107,11 @@ if __name__ == '__main__':
 </html>
         """)
     elif mode=="edit":
-        f = open('./task/'+edit_task_id+'/contents.txt', 'r', encoding=str_code)
+        f = open(script_path + '/task/'+edit_task_id+'/contents.txt', 'r', encoding=str_code)
         content = f.read()
         f.close()
         config = configparser.ConfigParser()
-        config.read('./task/'+edit_task_id+'/config.ini', encoding=str_code)
+        config.read(script_path + '/task/'+edit_task_id+'/config.ini', encoding=str_code)
         create = config['DATA']['CREATE_DATA']
         task_name = config['STATUS']['NAME']
         status = ''
@@ -201,16 +203,16 @@ if __name__ == '__main__':
 </html>
         """)
     elif mode=="update":
-        f = open('./task/'+update_task_id+'/contents.txt', 'w', encoding=str_code)
+        f = open(script_path + '/task/'+update_task_id+'/contents.txt', 'w', encoding=str_code)
         f.write(str(update_content).replace('\r\n', '\n'))
         f.close()
 
         config = configparser.ConfigParser()
         config.optionxform = str
-        config.read('./task/'+update_task_id+'/config.ini', encoding=str_code)
+        config.read(script_path + '/task/'+update_task_id+'/config.ini', encoding=str_code)
         config['DATA']['UPDATE_DATA'] = update_update_datetime
         config['STATUS']['STATUS'] = update_state_select
-        with open('./task/'+update_task_id+'/config.ini', mode='w', encoding=str_code) as write_config:
+        with open(script_path + '/task/'+update_task_id+'/config.ini', mode='w', encoding=str_code) as write_config:
             config.write(write_config)
 
         url = ("http://" + os.environ['HTTP_HOST'] + os.environ['REQUEST_URI']).split("?")[0]
@@ -285,8 +287,8 @@ if __name__ == '__main__':
 </html>
         """)
     elif mode=="write":
-        os.mkdir('./task/'+create_task_id)
-        f = open('./task/'+create_task_id+'/contents.txt', 'w', encoding=str_code)
+        os.mkdir(script_path + '/task/'+create_task_id)
+        f = open(script_path + '/task/'+create_task_id+'/contents.txt', 'w', encoding=str_code)
         f.write(str(create_content).replace('\r\n', '\n'))
         f.close()
 
@@ -299,13 +301,13 @@ if __name__ == '__main__':
         config.set("STATUS", 'NAME', create_task_name)
         config.set("STATUS", 'STATUS', create_state_select)
 
-        with open('./task/'+create_task_id+'/config.ini', mode='w', encoding=str_code) as write_config:
+        with open(script_path + '/task/'+create_task_id+'/config.ini', mode='w', encoding=str_code) as write_config:
             config.write(write_config)
 
         url = ("http://" + os.environ['HTTP_HOST'] + os.environ['REQUEST_URI']).split("?")[0]
         print("<meta http-equiv=\"refresh\" content=\"0;URL="+url+"\">")
 
     elif mode=="delete":
-        shutil.rmtree('./task/'+delete_task_id)
+        shutil.rmtree(script_path + '/task/'+delete_task_id)
         url = ("http://" + os.environ['HTTP_HOST'] + os.environ['REQUEST_URI']).split("?")[0]
         print("<meta http-equiv=\"refresh\" content=\"0;URL="+url+"\">")
