@@ -39,7 +39,7 @@ if 'REQUEST_URI' in os.environ:
     REQUEST_URL = os.environ['REQUEST_URI']
 else:
     # IIS用
-    REQUEST_URL = os.environ['UNENCODED_URL']
+    REQUEST_URL = os.environ['PATH_INFO']
 
 def header():
     print("""
