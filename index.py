@@ -9,6 +9,7 @@ import cgi
 import cgitb
 import uuid
 import shutil
+import re
 
 
 
@@ -83,12 +84,15 @@ def getStatus(url, mode):
         result['category'] = ""
 
     f = open(url + '/contents.txt', 'r', encoding=str_code)
-    if mode == "index":
-        result['content'] = f.read().replace('\n', '<br>')
-    elif mode == "edit":
-        result['content'] = f.read()
-
+    content = f.read()
     f.close()
+
+    if mode == "index":
+        # マークダウンリンクをHTMLリンクに変換
+        content = re.sub(r'\[([^\]]+)\]\(([^\)]+)\)', r'<a href="\2">\1</a>', content)
+        result['content'] = content.replace('\n', '<br>')
+    elif mode == "edit":
+        result['content'] = content
 
     return result
 
