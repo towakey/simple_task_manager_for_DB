@@ -48,6 +48,7 @@ update_state_select = form.getfirst('update_state_select', '')
 update_category_input = form.getfirst('update_category_input', '')
 update_task_name = form.getfirst('update_task_name', '')
 update_content = form.getfirst('update_content', '')
+update_pinned = form.getfirst('update_pinned', '') == 'on'  # チェックボックスの値を取得
 
 # 作成用
 create_task_id = form.getfirst('create_task_id', '')
@@ -79,6 +80,12 @@ def getStatus(url, mode):
         result['status'] = '状態不明'
 
     result['name'] = config['STATUS']['NAME']
+
+    # ピン止めの状態を安全に取得
+    try:
+        result['pinned'] = config['STATUS'].getboolean('PINNED', fallback=False)
+    except (configparser.Error, ValueError):
+        result['pinned'] = False
 
     if "CATEGORY" in map(lambda x:x[0].upper(), config.items("STATUS")):
         result['category'] = config['STATUS']['CATEGORY']
@@ -205,14 +212,30 @@ if __name__ == '__main__':
 
         # ソート処理
         if tasks:
-            if sort_by == 'name':
-                tasks.sort(key=lambda x: x['name'].lower(), reverse=(sort_order == 'desc'))
-            elif sort_by in ['create_date', 'update_date']:
-                tasks.sort(key=lambda x: datetime.datetime.strptime(x[sort_by], '%Y-%m-%dT%H:%M:%S'), reverse=(sort_order == 'desc'))
-            elif sort_by == 'category':
-                tasks.sort(key=lambda x: x['category'].lower(), reverse=(sort_order == 'desc'))
-            elif sort_by == 'status':
-                tasks.sort(key=lambda x: x['status'], reverse=(sort_order == 'desc'))
+            def get_sort_key(task):
+                # 最初にピン止めされたタスクを上に
+                pinned_priority = 0 if task['pinned'] else 1
+                
+                # 二次ソートのキーを取得
+                if sort_by == 'name':
+                    secondary_key = task['name'].lower()
+                elif sort_by in ['create_date', 'update_date']:
+                    secondary_key = datetime.datetime.strptime(task[sort_by], '%Y-%m-%dT%H:%M:%S')
+                elif sort_by == 'category':
+                    secondary_key = task['category'].lower()
+                elif sort_by == 'status':
+                    secondary_key = task['status']
+                
+                # 降順の場合は比較を反転
+                if sort_order == 'desc' and sort_by in ['create_date', 'update_date']:
+                    secondary_key = datetime.datetime.max - secondary_key
+                elif sort_order == 'desc':
+                    secondary_key = '~' + str(secondary_key)
+                
+                return (pinned_priority, secondary_key)
+            
+            # ソート実行
+            tasks.sort(key=get_sort_key)
 
         content = ""
         if len(tasks) > 0:
@@ -287,7 +310,6 @@ if __name__ == '__main__':
 </select>
 """
         else:
-            # status_str = '状態不明'
             status_html = """
 <label for="inputState" class="">状態</label>
 <select id="inputState" class="" name="update_state_select">
@@ -295,6 +317,14 @@ if __name__ == '__main__':
     <option value="COMPLETE">完了</option>
 </select>
 """
+
+        # ピン止めチェックボックスのHTML
+        pinned_checked = 'checked' if status.get('pinned', False) else ''
+        pinned_html = f"""
+<div class="form-check form-check-inline ms-3">
+    <input class="form-check-input" type="checkbox" id="pinned" name="update_pinned" {pinned_checked}>
+    <label class="form-check-label" for="pinned">ピン止めする</label>
+</div>"""
 
         create_html = f"""
 作成日 : {datetime.datetime.strptime(status["create_date"], "%Y-%m-%dT%H:%M:%S").strftime("%Y-%m-%d %H:%M:%S")}
@@ -317,7 +347,7 @@ if __name__ == '__main__':
                         {task_name}
                         </h2>
                         <h5 class="card-subtitle" style="height: 5%">
-                        {create_html} {update_html} {status_html} {category_html}
+                        {create_html} {update_html} {status_html} {category_html} {pinned_html}
                         </h5>
                         <div class="card-text" style="height: 90%">
                             <div class="input-group" style="height: 90%">
@@ -336,7 +366,7 @@ if __name__ == '__main__':
                 </div>
             </form>
         </div>
-        """.format(edit_task_id=edit_task_id, task_name=status["name"], create_html=create_html, update_html=update_html, status_html=status_html, category_html=category_html, content=status["content"]))
+        """.format(edit_task_id=edit_task_id, task_name=status["name"], create_html=create_html, update_html=update_html, status_html=status_html, category_html=category_html, pinned_html=pinned_html, content=status["content"]))
 
         footer()
 
@@ -349,11 +379,21 @@ if __name__ == '__main__':
         config = configparser.ConfigParser()
         config.optionxform = str
         config.read(script_path + '/task/'+update_task_id+'/config.ini', encoding=str_code)
+
+        # 既存のセクションがない場合は作成
+        if not config.has_section('DATA'):
+            config.add_section('DATA')
+        if not config.has_section('STATUS'):
+            config.add_section('STATUS')
+
         config['DATA']['UPDATE_DATA'] = update_update_datetime
         config['STATUS']['STATUS'] = update_state_select
         config['STATUS']['CATEGORY'] = update_category_input
+        config['STATUS']['PINNED'] = str(update_pinned)  # ピン止めの状態を保存
+        
         with open(script_path + '/task/'+update_task_id+'/config.ini', mode='w', encoding=str_code) as write_config:
             config.write(write_config)
+
         url = ("http://" + os.environ['HTTP_HOST'] + REQUEST_URL).split("?")[0]
         print("<meta http-equiv=\"refresh\" content=\"0;URL="+url+"\">")
 
@@ -426,6 +466,7 @@ if __name__ == '__main__':
         config.set("STATUS", 'NAME', create_task_name)
         config.set("STATUS", 'STATUS', create_state_select)
         config.set("STATUS", 'CATEGORY', create_category_input)
+        config.set("STATUS", 'PINNED', 'False')  # 新規作成時はピン止めなし
 
         with open(script_path + '/task/'+create_task_id+'/config.ini', mode='w', encoding=str_code) as write_config:
             config.write(write_config)
