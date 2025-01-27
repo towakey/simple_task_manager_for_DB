@@ -35,6 +35,7 @@ sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 form = cgi.FieldStorage()
 mode = form.getfirst("mode", '')
 q_category = form.getfirst("category", '')
+q_tag = form.getfirst("tag", '')  # タグによる絞り込み用
 sort_by = form.getfirst("sort", 'update_date')  # デフォルトは更新日でソート
 sort_order = form.getfirst("order", 'desc')  # デフォルトは降順
 
@@ -49,6 +50,7 @@ update_category_input = form.getfirst('update_category_input', '')
 update_task_name = form.getfirst('update_task_name', '')
 update_content = form.getfirst('update_content', '')
 update_pinned = form.getfirst('update_pinned', '') == 'on'  # チェックボックスの値を取得
+update_tags = form.getfirst('update_tags', '')  # タグ入力用
 
 # 作成用
 create_task_id = form.getfirst('create_task_id', '')
@@ -86,6 +88,13 @@ def getStatus(url, mode):
         result['pinned'] = config['STATUS'].getboolean('PINNED', fallback=False)
     except (configparser.Error, ValueError):
         result['pinned'] = False
+
+    # タグを安全に取得
+    try:
+        tags_str = config['STATUS'].get('TAGS', fallback='')
+        result['tags'] = [tag.strip() for tag in tags_str.split(',') if tag.strip()]
+    except (configparser.Error, ValueError):
+        result['tags'] = []
 
     if "CATEGORY" in map(lambda x:x[0].upper(), config.items("STATUS")):
         result['category'] = config['STATUS']['CATEGORY']
@@ -241,7 +250,8 @@ if __name__ == '__main__':
         if len(tasks) > 0:
             for task in tasks:
                 if q_category == "" or q_category == task['category']:
-                    temp = """
+                    if q_tag == "" or q_tag in task['tags']:
+                        temp = """
         <div class="container">
             <div class="card{card_color}">
                 <div class="card-body">
@@ -251,6 +261,9 @@ if __name__ == '__main__':
                     <h5 class="card-subtitle">
                         作成日:{create} 更新日:{update} 状態:{status} カテゴリー:{category}
                     </h5>
+                    <div class="mt-2">
+                        {tag_links}
+                    </div>
                     <div class="card-text border">
                         {content}
                     </div>
@@ -267,9 +280,10 @@ if __name__ == '__main__':
                         update=datetime.datetime.strptime(task['update_date'], '%Y-%m-%dT%H:%M:%S').strftime('%Y-%m-%d %H:%M:%S'),
                         content=task['content'],
                         status=task['status'],
-                        category=task['category']
+                        category=task['category'],
+                        tag_links=' '.join([f'<a href="./index.py?tag={tag}" class="badge bg-secondary text-decoration-none me-1">{tag}</a>' for tag in task['tags']])
                     )
-                    content += temp
+                        content += temp
         else:
             content = """
         <div class="container">
@@ -326,6 +340,13 @@ if __name__ == '__main__':
     <label class="form-check-label" for="pinned">ピン止めする</label>
 </div>"""
 
+        # タグ入力欄のHTML
+        tags_str = ', '.join(status.get('tags', []))
+        tags_html = f"""
+<div class="mt-2">
+    タグ：<input type="text" name="update_tags" value="{tags_str}" class="form-control" placeholder="カンマ区切りでタグを入力 (例: 重要, 会議, TODO)"/>
+</div>"""
+
         create_html = f"""
 作成日 : {datetime.datetime.strptime(status["create_date"], "%Y-%m-%dT%H:%M:%S").strftime("%Y-%m-%d %H:%M:%S")}
 """
@@ -349,7 +370,8 @@ if __name__ == '__main__':
                         <h5 class="card-subtitle" style="height: 5%">
                         {create_html} {update_html} {status_html} {category_html} {pinned_html}
                         </h5>
-                        <div class="card-text" style="height: 90%">
+                        {tags_html}
+                        <div class="card-text" style="height: 85%">
                             <div class="input-group" style="height: 90%">
                                 <textarea class="form-control h-100" style="" name="update_content">{content}</textarea>
                             </div>
@@ -366,7 +388,7 @@ if __name__ == '__main__':
                 </div>
             </form>
         </div>
-        """.format(edit_task_id=edit_task_id, task_name=status["name"], create_html=create_html, update_html=update_html, status_html=status_html, category_html=category_html, pinned_html=pinned_html, content=status["content"]))
+        """.format(edit_task_id=edit_task_id, task_name=status["name"], create_html=create_html, update_html=update_html, status_html=status_html, category_html=category_html, pinned_html=pinned_html, tags_html=tags_html, content=status["content"]))
 
         footer()
 
@@ -389,8 +411,12 @@ if __name__ == '__main__':
         config['DATA']['UPDATE_DATA'] = update_update_datetime
         config['STATUS']['STATUS'] = update_state_select
         config['STATUS']['CATEGORY'] = update_category_input
-        config['STATUS']['PINNED'] = str(update_pinned)  # ピン止めの状態を保存
+        config['STATUS']['PINNED'] = str(update_pinned)
         
+        # タグを保存（空白を除去してカンマで結合）
+        tags = [tag.strip() for tag in update_tags.split(',') if tag.strip()]
+        config['STATUS']['TAGS'] = ','.join(tags)
+
         with open(script_path + '/task/'+update_task_id+'/config.ini', mode='w', encoding=str_code) as write_config:
             config.write(write_config)
 
@@ -467,6 +493,7 @@ if __name__ == '__main__':
         config.set("STATUS", 'STATUS', create_state_select)
         config.set("STATUS", 'CATEGORY', create_category_input)
         config.set("STATUS", 'PINNED', 'False')  # 新規作成時はピン止めなし
+        config.set("STATUS", 'TAGS', '')  # 新規作成時は空のタグで初期化
 
         with open(script_path + '/task/'+create_task_id+'/config.ini', mode='w', encoding=str_code) as write_config:
             config.write(write_config)
