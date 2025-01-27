@@ -35,6 +35,8 @@ sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 form = cgi.FieldStorage()
 mode = form.getfirst("mode", '')
 q_category = form.getfirst("category", '')
+sort_by = form.getfirst("sort", 'update_date')  # デフォルトは更新日でソート
+sort_order = form.getfirst("order", 'desc')  # デフォルトは降順
 
 edit_task_id = form.getfirst('edit_task_id', '')
 delete_task_id = form.getfirst('delete_task_id', '')
@@ -138,10 +140,30 @@ def nav():
                             <ul class="dropdown-menu">
 """)
     for category in categorys:
+        sort_params = f"&sort={sort_by}&order={sort_order}" if sort_by else ""
         print(f"""
-                                <li><a class="dropdown-item" href="./index.py?category={category}">{category}</a></li>
+                                <li><a class="dropdown-item" href="./index.py?category={category}{sort_params}">{category}</a></li>
 """)
     print("""
+                            </ul>
+                        </li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">ソート</a>
+                            <ul class="dropdown-menu">
+                                <li><a class="dropdown-item" href="./index.py?sort=name&order=asc">タスク名 (昇順)</a></li>
+                                <li><a class="dropdown-item" href="./index.py?sort=name&order=desc">タスク名 (降順)</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="./index.py?sort=create_date&order=desc">作成日 (新しい順)</a></li>
+                                <li><a class="dropdown-item" href="./index.py?sort=create_date&order=asc">作成日 (古い順)</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="./index.py?sort=update_date&order=desc">更新日 (新しい順)</a></li>
+                                <li><a class="dropdown-item" href="./index.py?sort=update_date&order=asc">更新日 (古い順)</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="./index.py?sort=category&order=asc">カテゴリー (昇順)</a></li>
+                                <li><a class="dropdown-item" href="./index.py?sort=category&order=desc">カテゴリー (降順)</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="./index.py?sort=status&order=asc">状態 (継続→完了)</a></li>
+                                <li><a class="dropdown-item" href="./index.py?sort=status&order=desc">状態 (完了→継続)</a></li>
                             </ul>
                         </li>
                     </ul>
@@ -149,7 +171,6 @@ def nav():
             </div>
         </nav>
 """)
-
 
 def footer():
     print("""
@@ -174,15 +195,30 @@ if __name__ == '__main__':
     if mode == '':
         files_file = [f for f in os.listdir(task_folder_path) if os.path.isdir(os.path.join(task_folder_path, f))]
 
-        content = ""
-        categorys = []
+        # タスク情報を取得してリストに格納
+        tasks = []
         if len(files_file) > 0:
             for file in files_file:
-                status = {}
                 status = getStatus(task_folder_path+'/'+file+'/', "index")
+                status['id'] = file
+                tasks.append(status)
 
-                temp = ""
-                temp = """
+        # ソート処理
+        if tasks:
+            if sort_by == 'name':
+                tasks.sort(key=lambda x: x['name'].lower(), reverse=(sort_order == 'desc'))
+            elif sort_by in ['create_date', 'update_date']:
+                tasks.sort(key=lambda x: datetime.datetime.strptime(x[sort_by], '%Y-%m-%dT%H:%M:%S'), reverse=(sort_order == 'desc'))
+            elif sort_by == 'category':
+                tasks.sort(key=lambda x: x['category'].lower(), reverse=(sort_order == 'desc'))
+            elif sort_by == 'status':
+                tasks.sort(key=lambda x: x['status'], reverse=(sort_order == 'desc'))
+
+        content = ""
+        if len(tasks) > 0:
+            for task in tasks:
+                if q_category == "" or q_category == task['category']:
+                    temp = """
         <div class="container">
             <div class="card{card_color}">
                 <div class="card-body">
@@ -200,13 +236,17 @@ if __name__ == '__main__':
                 </div>
             </div>
         </div>
-                """.format(card_color=status['card_color'], file=file, task_name=status['name'], create=datetime.datetime.strptime(status['create_date'], '%Y-%m-%dT%H:%M:%S').strftime('%Y-%m-%d %H:%M:%S'), update=datetime.datetime.strptime(status['update_date'], '%Y-%m-%dT%H:%M:%S').strftime('%Y-%m-%d %H:%M:%S'), content=status['content'], status=status['status'], category=status['category'])
-
-                if q_category == "":
+                    """.format(
+                        card_color=task['card_color'],
+                        file=task['id'],
+                        task_name=task['name'],
+                        create=datetime.datetime.strptime(task['create_date'], '%Y-%m-%dT%H:%M:%S').strftime('%Y-%m-%d %H:%M:%S'),
+                        update=datetime.datetime.strptime(task['update_date'], '%Y-%m-%dT%H:%M:%S').strftime('%Y-%m-%d %H:%M:%S'),
+                        content=task['content'],
+                        status=task['status'],
+                        category=task['category']
+                    )
                     content += temp
-                else:
-                    if q_category == status['category']:
-                        content += temp
         else:
             content = """
         <div class="container">
