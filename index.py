@@ -361,7 +361,8 @@ if __name__ == '__main__':
 
         print("""
         <div class="container mh-100">
-            <form>
+            <form action="{REQUEST_URL}" method="post">
+                <input type="hidden" name="mode" value="update"/>
                 <div class="card h-100">
                     <div class="card-body h-100">
                         <h2 class="card-title" style="height: 5%">
@@ -379,7 +380,7 @@ if __name__ == '__main__':
                                 <div class="col">
                                     <div class="d-grid gap-2">
                                         <input type="hidden" name="update_task_id" value="{edit_task_id}" />
-                                        <button type="submit" class="btn btn-primary btn-block" name="mode" value="update">編集ボタン</button>
+                                        <button type="submit" class="btn btn-primary btn-block">編集ボタン</button>
                                     </div>
                                 </div>
                             </div>
@@ -388,7 +389,7 @@ if __name__ == '__main__':
                 </div>
             </form>
         </div>
-        """.format(edit_task_id=edit_task_id, task_name=status["name"], create_html=create_html, update_html=update_html, status_html=status_html, category_html=category_html, pinned_html=pinned_html, tags_html=tags_html, content=status["content"]))
+        """.format(edit_task_id=edit_task_id, task_name=status["name"], create_html=create_html, update_html=update_html, status_html=status_html, category_html=category_html, pinned_html=pinned_html, tags_html=tags_html, content=status["content"], REQUEST_URL=REQUEST_URL))
 
         footer()
 
@@ -446,7 +447,8 @@ if __name__ == '__main__':
 
         print("""
         <div class="container mh-100">
-            <form>
+            <form action="{REQUEST_URL}" method="post">
+                <input type="hidden" name="mode" value="create"/>
                 <div class="card h-100">
                     <div class="card-body h-100">
                         <h2 class="card-title" style="height: 5%">
@@ -463,7 +465,7 @@ if __name__ == '__main__':
                             <div class="row align-items-end" style="height: 10%">
                                 <div class="col">
                                     <div class="d-grid gap-2">
-                                        <button type="submit" class="btn btn-primary btn-block" name="mode" value="write">作成ボタン</button>
+                                        <button type="submit" class="btn btn-primary btn-block">作成ボタン</button>
                                     </div>
                                 </div>
                             </div>
@@ -472,7 +474,7 @@ if __name__ == '__main__':
                 </div>
             </form>
         </div>
-        """.format(uuid=uuid.uuid4(),create_html=create_html, update_html=update_html, status_html=status_html, category_html=category_html))
+        """.format(uuid=uuid.uuid4(),create_html=create_html, update_html=update_html, status_html=status_html, category_html=category_html, REQUEST_URL=REQUEST_URL))
 
         footer()
         
