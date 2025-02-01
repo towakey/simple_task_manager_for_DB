@@ -448,7 +448,7 @@ if __name__ == '__main__':
         print("""
         <div class="container mh-100">
             <form action="{REQUEST_URL}" method="post">
-                <input type="hidden" name="mode" value="create"/>
+                <input type="hidden" name="mode" value="write"/>
                 <div class="card h-100">
                     <div class="card-body h-100">
                         <h2 class="card-title" style="height: 5%">
