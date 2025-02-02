@@ -365,14 +365,27 @@ if __name__ == '__main__':
                 <input type="hidden" name="mode" value="update"/>
                 <div class="card h-100">
                     <div class="card-body h-100">
-                        <h2 class="card-title" style="height: 5%">
+                        <h2 class="card-title" style="">
                         {task_name}
                         </h2>
-                        <h5 class="card-subtitle" style="height: 5%">
-                        {create_html} {update_html} {status_html} {category_html} {pinned_html}
+                        <h5 class="card-subtitle" style="">
+                            <div class="row">
+                                <div class="col">
+                                    {create_html} {update_html}
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col">
+                                    {status_html} {category_html} {pinned_html}
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col">
+                                    {tags_html}
+                                </div>
+                            </div>
                         </h5>
-                        {tags_html}
-                        <div class="card-text" style="height: 85%">
+                        <div class="card-text" style="">
                             <div class="input-group" style="height: 90%">
                                 <textarea class="form-control h-100" style="" name="update_content">{content}</textarea>
                             </div>
@@ -442,6 +455,7 @@ if __name__ == '__main__':
         category_html = f"""
 カテゴリー：<input type="text" name="create_category_input" value=""/>"""
 
+
         header()
         nav()
 
@@ -451,14 +465,23 @@ if __name__ == '__main__':
                 <input type="hidden" name="mode" value="write"/>
                 <div class="card h-100">
                     <div class="card-body h-100">
-                        <h2 class="card-title" style="height: 5%">
+                        <h2 class="card-title" style="">
                             <input type="hidden" name="create_task_id" value="{uuid}" />
                             タスク名<input type="text" name="create_task_name"></input>
                         </h2>
-                        <h5 class="card-subtitle" style="height: 5%">
-                        {create_html} {update_html} {status_html} {category_html}
+                        <h5 class="card-subtitle" style="">
+                            <div class="row">
+                                <div class="col">
+                                    {create_html} {update_html}
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col">
+                                    {status_html} {category_html}
+                                </div>
+                            </div>
                         </h5>
-                        <div class="card-text" style="height: 90%">
+                        <div class="card-text" style="">
                             <div class="input-group" style="height: 90%">
                                 <textarea class="form-control h-100" style="" name="create_content"></textarea>
                             </div>
