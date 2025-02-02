@@ -51,6 +51,7 @@ update_task_name = form.getfirst('update_task_name', '')
 update_content = form.getfirst('update_content', '')
 update_pinned = form.getfirst('update_pinned', '') == 'on'  # チェックボックスの値を取得
 update_tags = form.getfirst('update_tags', '')  # タグ入力用
+update_担当者 = form.getfirst('update_担当者', '')
 
 # 作成用
 create_task_id = form.getfirst('create_task_id', '')
@@ -62,6 +63,7 @@ create_task_name = form.getfirst('create_task_name', '')
 create_content = form.getfirst('create_content', '')
 create_pinned = form.getfirst('create_pinned', '') == 'on'  # チェックボックスの値を取得
 create_tags = form.getfirst('create_tags', '')  # タグ入力用
+create_担当者 = form.getfirst('create_担当者', '')
 
 
 
@@ -102,6 +104,11 @@ def getStatus(url, mode):
         result['category'] = config['STATUS']['CATEGORY']
     else:
         result['category'] = ""
+
+    if "担当者" in map(lambda x:x[0].upper(), config.items("STATUS")):
+        result['担当者'] = config['STATUS']['担当者']
+    else:
+        result['担当者'] = ""
 
     f = open(url + '/contents.txt', 'r', encoding=str_code)
     content = f.read()
@@ -262,7 +269,7 @@ if __name__ == '__main__':
                         {pin_icon} {task_name}
                     </h2>
                     <h5 class="card-subtitle">
-                        作成日:{create} 更新日:{update} 状態:{status} カテゴリー:{category}
+                        発生日:{incident} 更新日:{update} 状態:{status} カテゴリー:{category} 担当者:{担当者}
                     </h5>
                     <div class="mt-2">
                         {tag_links}
@@ -280,11 +287,12 @@ if __name__ == '__main__':
                         file=task['id'],
                         task_name=task['name'],
                         pin_icon=pin_icon,
-                        create=datetime.datetime.strptime(task['create_date'], '%Y-%m-%dT%H:%M:%S').strftime('%Y-%m-%d %H:%M:%S'),
+                        incident=datetime.datetime.strptime(task.get('発生日', task['create_date']), '%Y-%m-%dT%H:%M:%S').strftime('%Y-%m-%d %H:%M:%S'),
                         update=datetime.datetime.strptime(task['update_date'], '%Y-%m-%dT%H:%M:%S').strftime('%Y-%m-%d %H:%M:%S'),
                         content=task['content'],
                         status=task['status'],
                         category=task['category'],
+                        担当者=task.get('担当者', ''),
                         tag_links=' '.join([f'<a href="./index.py?tag={tag}" class="badge bg-secondary text-decoration-none me-1">{tag}</a>' for tag in task['tags']])
                     )
                         content += temp
@@ -351,6 +359,12 @@ if __name__ == '__main__':
     タグ：<input type="text" name="update_tags" value="{tags_str}" class="form-control" placeholder="カンマ区切りでタグを入力 (例: 重要, 会議, TODO)"/>
 </div>"""
 
+        # 担当者入力欄のHTML
+        担当者_html = f"""
+<div class="mt-2">
+    担当者：<input type="text" name="update_担当者" value="{status.get('担当者', '')}"/>
+</div>"""
+
         create_html = f"""
 作成日 : {datetime.datetime.strptime(status["create_date"], "%Y-%m-%dT%H:%M:%S").strftime("%Y-%m-%d %H:%M:%S")}
 """
@@ -380,7 +394,7 @@ if __name__ == '__main__':
                             </div>
                             <div class="row">
                                 <div class="col">
-                                    {status_html} {category_html} {pinned_html}
+                                    {status_html} {category_html} {担当者_html} {pinned_html}
                                 </div>
                             </div>
                             <div class="row">
@@ -406,7 +420,7 @@ if __name__ == '__main__':
                 </div>
             </form>
         </div>
-        """.format(edit_task_id=edit_task_id, task_name=status["name"], create_html=create_html, update_html=update_html, status_html=status_html, category_html=category_html, pinned_html=pinned_html, tags_html=tags_html, content=status["content"], REQUEST_URL=REQUEST_URL))
+        """.format(edit_task_id=edit_task_id, task_name=status["name"], create_html=create_html, update_html=update_html, status_html=status_html, category_html=category_html, 担当者_html=担当者_html, pinned_html=pinned_html, tags_html=tags_html, content=status["content"], REQUEST_URL=REQUEST_URL))
 
         footer()
 
@@ -434,6 +448,8 @@ if __name__ == '__main__':
         # タグを保存（空白を除去してカンマで結合）
         tags = [tag.strip() for tag in update_tags.split(',') if tag.strip()]
         config['STATUS']['TAGS'] = ','.join(tags)
+
+        config['STATUS']['担当者'] = update_担当者
 
         with open(script_path + '/task/'+update_task_id+'/config.ini', mode='w', encoding=str_code) as write_config:
             config.write(write_config)
@@ -470,6 +486,11 @@ if __name__ == '__main__':
     タグ：<input type="text" name="create_tags" value="" class="form-control" placeholder="カンマ区切りでタグを入力 (例: 重要, 会議, TODO)"/>
 </div>"""
 
+        create_担当者_html = f"""
+<div class="mt-2">
+    担当者：<input type="text" name="create_担当者" value=""/>
+</div>"""
+
         header()
         nav()
 
@@ -491,7 +512,7 @@ if __name__ == '__main__':
                             </div>
                             <div class="row">
                                 <div class="col">
-                                    {status_html} {category_html} {pinned_html}
+                                    {status_html} {category_html} {create_担当者_html} {pinned_html}
                                 </div>
                             </div>
                             <div class="row">
@@ -516,7 +537,7 @@ if __name__ == '__main__':
                 </div>
             </form>
         </div>
-        """.format(uuid=uuid.uuid4(),create_html=create_html, update_html=update_html, status_html=status_html, category_html=category_html, pinned_html=pinned_html, tags_html=tags_html, REQUEST_URL=REQUEST_URL))
+        """.format(uuid=uuid.uuid4(),create_html=create_html, update_html=update_html, status_html=status_html, category_html=category_html, create_担当者_html=create_担当者_html, pinned_html=pinned_html, tags_html=tags_html, REQUEST_URL=REQUEST_URL))
 
         footer()
         
@@ -538,6 +559,7 @@ if __name__ == '__main__':
         config.set("STATUS", 'CATEGORY', create_category_input)
         config.set("STATUS", 'PINNED', str(create_pinned))  # 新規作成時はピン止めなし
         config.set("STATUS", 'TAGS', create_tags)  # 新規作成時は空のタグで初期化
+        config.set("STATUS", '担当者', create_担当者)
 
         with open(script_path + '/task/'+create_task_id+'/config.ini', mode='w', encoding=str_code) as write_config:
             config.write(write_config)
