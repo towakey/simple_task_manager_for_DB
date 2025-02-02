@@ -60,6 +60,8 @@ create_state_select = form.getfirst('create_state_select', '')
 create_category_input = form.getfirst('create_category_input', '')
 create_task_name = form.getfirst('create_task_name', '')
 create_content = form.getfirst('create_content', '')
+create_pinned = form.getfirst('create_pinned', '') == 'on'  # チェックボックスの値を取得
+create_tags = form.getfirst('create_tags', '')  # タグ入力用
 
 
 
@@ -455,6 +457,16 @@ if __name__ == '__main__':
         category_html = f"""
 カテゴリー：<input type="text" name="create_category_input" value=""/>"""
 
+        pinned_html = f"""
+<div class="form-check form-check-inline ms-3">
+    <input class="form-check-input" type="checkbox" id="pinned" name="create_pinned">
+    <label class="form-check-label" for="pinned">ピン止めする</label>
+</div>"""
+
+        tags_html = f"""
+<div class="mt-2">
+    タグ：<input type="text" name="create_tags" value="" class="form-control" placeholder="カンマ区切りでタグを入力 (例: 重要, 会議, TODO)"/>
+</div>"""
 
         header()
         nav()
@@ -477,7 +489,12 @@ if __name__ == '__main__':
                             </div>
                             <div class="row">
                                 <div class="col">
-                                    {status_html} {category_html}
+                                    {status_html} {category_html} {pinned_html}
+                                </div>
+                            </div>
+                            <div class="row">
+                                <div class="col">
+                                    {tags_html}
                                 </div>
                             </div>
                         </h5>
@@ -497,7 +514,7 @@ if __name__ == '__main__':
                 </div>
             </form>
         </div>
-        """.format(uuid=uuid.uuid4(),create_html=create_html, update_html=update_html, status_html=status_html, category_html=category_html, REQUEST_URL=REQUEST_URL))
+        """.format(uuid=uuid.uuid4(),create_html=create_html, update_html=update_html, status_html=status_html, category_html=category_html, pinned_html=pinned_html, tags_html=tags_html, REQUEST_URL=REQUEST_URL))
 
         footer()
         
@@ -517,8 +534,8 @@ if __name__ == '__main__':
         config.set("STATUS", 'NAME', create_task_name)
         config.set("STATUS", 'STATUS', create_state_select)
         config.set("STATUS", 'CATEGORY', create_category_input)
-        config.set("STATUS", 'PINNED', 'False')  # 新規作成時はピン止めなし
-        config.set("STATUS", 'TAGS', '')  # 新規作成時は空のタグで初期化
+        config.set("STATUS", 'PINNED', str(create_pinned))  # 新規作成時はピン止めなし
+        config.set("STATUS", 'TAGS', create_tags)  # 新規作成時は空のタグで初期化
 
         with open(script_path + '/task/'+create_task_id+'/config.ini', mode='w', encoding=str_code) as write_config:
             config.write(write_config)
