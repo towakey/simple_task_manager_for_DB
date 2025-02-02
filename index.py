@@ -253,12 +253,13 @@ if __name__ == '__main__':
             for task in tasks:
                 if q_category == "" or q_category == task['category']:
                     if q_tag == "" or q_tag in task['tags']:
+                        pin_icon = '📌' if task.get('pinned', False) else ''
                         temp = """
         <div class="container">
             <div class="card{card_color}">
                 <div class="card-body">
                     <h2 class="card-title">
-                        {task_name}
+                        {pin_icon} {task_name}
                     </h2>
                     <h5 class="card-subtitle">
                         作成日:{create} 更新日:{update} 状態:{status} カテゴリー:{category}
@@ -278,6 +279,7 @@ if __name__ == '__main__':
                         card_color=task['card_color'],
                         file=task['id'],
                         task_name=task['name'],
+                        pin_icon=pin_icon,
                         create=datetime.datetime.strptime(task['create_date'], '%Y-%m-%dT%H:%M:%S').strftime('%Y-%m-%d %H:%M:%S'),
                         update=datetime.datetime.strptime(task['update_date'], '%Y-%m-%dT%H:%M:%S').strftime('%Y-%m-%d %H:%M:%S'),
                         content=task['content'],
