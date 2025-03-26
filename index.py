@@ -144,6 +144,7 @@ def header():
         <meta charset="UTF-8">
         <link rel="stylesheet" href="./css/bootstrap.css">
         <script src="./js/bootstrap.bundle.js"></script>
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
         <title>{app_name}</title>
         <style>
             body {{
@@ -267,23 +268,47 @@ if __name__ == '__main__':
                     if q_tag == "" or q_tag in task['tags']:
                         pin_icon = '📌' if task.get('pinned', False) else ''
                         temp = """
-        <div class="container">
-            <div class="card{card_color}">
+        <div class="container my-3">
+            <div class="card{card_color} shadow-sm">
                 <div class="card-body">
                     <h2 class="card-title">
-                        {pin_icon} {task_name}
+                        {pin_icon} [{category}] {task_name}
                     </h2>
-                    <h5 class="card-subtitle">
-                        発生日:{incident} 更新日:{update} 状態:{status} カテゴリー:{category} 担当者:{担当者}
-                    </h5>
+                    
+                    <!-- Task metadata with improved styling -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <span class="badge bg-info text-dark me-2">
+                                <i class="bi bi-person-fill"></i> 担当者: {担当者}
+                            </span>
+                            <span class="badge bg-secondary me-2">
+                                <i class="bi bi-clock-history"></i> 状態: {status}
+                            </span>
+                        </div>
+                    </div>
+                    
                     <div class="mt-2">
                         {tag_links}
                     </div>
-                    <div class="card-text border">
+                    <div class="card-text border p-3 bg-light my-3">
                         {content}
                     </div>
-                    <a href="./index.py?mode=edit&edit_task_id={file}" class="btn btn-primary">編集</a>
-                    <a href="./index.py?mode=delete&delete_task_id={file}" class="btn btn-danger" onclick="return confirmDelete(this);">削除</a>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-12">
+                            <small class="text-muted">
+                                <i class="bi bi-calendar-check"></i> 更新日: {update} &nbsp;|&nbsp; 
+                                <i class="bi bi-calendar-plus"></i> 発生日: {incident}
+                            </small>
+                        </div>
+                    </div>
+                    
+                    <a href="./index.py?mode=edit&edit_task_id={file}" class="btn btn-primary">
+                        <i class="bi bi-pencil"></i> 編集
+                    </a>
+                    <a href="./index.py?mode=delete&delete_task_id={file}" class="btn btn-danger" onclick="return confirmDelete(this);">
+                        <i class="bi bi-trash"></i> 削除
+                    </a>
                 </div>
             </div>
         </div>
@@ -311,7 +336,6 @@ if __name__ == '__main__':
                     </div>
                 </div>
             </div>
-        </div>
 """
         header()
         nav()
