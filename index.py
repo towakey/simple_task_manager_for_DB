@@ -145,6 +145,11 @@ def header():
         <link rel="stylesheet" href="./css/bootstrap.css">
         <script src="./js/bootstrap.bundle.js"></script>
         <title>{app_name}</title>
+        <style>
+            body {{
+                padding-top: 70px; /* Added padding to body to prevent content from being hidden behind fixed navbar */
+            }}
+        </style>
     </head>
     <body>
 """)
@@ -152,7 +157,7 @@ def header():
 def nav():
     categorys = getCategoryList()
     print(f"""
-        <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top">
             <div class="container-fluid">
                 <a class="navbar-brand" href="./index.py">{app_name}</a>
                 <div class="collapse navbar-collapse" id="navbarNav">
