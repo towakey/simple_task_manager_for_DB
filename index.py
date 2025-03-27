@@ -82,7 +82,7 @@ def getStatus(url, mode):
         result['card_color'] = ""
     elif config['STATUS']['STATUS'] == 'COMPLETE':
         result['status'] = '完了'
-        result['card_color'] = " text-bg-secondary"
+        result['card_color'] = " bg-secondary"
     else:
         result['status'] = '状態不明'
 
