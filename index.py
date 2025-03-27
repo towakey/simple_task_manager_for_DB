@@ -151,7 +151,11 @@ def header():
         <title>{app_name}</title>
         <style>
             body {{
-                padding-top: 70px; /* Added padding to body to prevent content from being hidden behind fixed navbar */
+                padding-top: 70px;
+            }}
+            .scrollable-dropdown-menu {{
+                max-height: 70vh;
+                overflow-y: auto;
             }}
         </style>
     </head>
@@ -164,6 +168,9 @@ def nav():
         <nav class="navbar navbar-expand-lg navbar-light bg-light fixed-top">
             <div class="container-fluid">
                 <a class="navbar-brand" href="./index.py">{app_name}</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
                 <div class="collapse navbar-collapse" id="navbarNav">
                     <ul class="navbar-nav">
                         <li class="nav-item">
@@ -171,7 +178,7 @@ def nav():
                         </li>
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">カテゴリー</a>
-                            <ul class="dropdown-menu">
+                            <ul class="dropdown-menu scrollable-dropdown-menu">
 """)
     for category in categorys:
         sort_params = f"&sort={sort_by}&order={sort_order}" if sort_by else ""
@@ -183,7 +190,7 @@ def nav():
                         </li>
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">ソート</a>
-                            <ul class="dropdown-menu">
+                            <ul class="dropdown-menu scrollable-dropdown-menu">
                                 <li><a class="dropdown-item" href="./index.py?sort=name&order=asc">タスク名 (昇順)</a></li>
                                 <li><a class="dropdown-item" href="./index.py?sort=name&order=desc">タスク名 (降順)</a></li>
                                 <li><hr class="dropdown-divider"></li>
