@@ -10,8 +10,7 @@ import cgitb
 import uuid
 import shutil
 import re
-
-
+import csv
 
 app_name = "simple_task_manager"
 
@@ -28,14 +27,15 @@ else:
     # IIS用
     REQUEST_URL = os.environ['PATH_INFO']
 
-
-
 cgitb.enable(display=1, logdir=None, context=5, format='html')
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 form = cgi.FieldStorage()
 mode = form.getfirst("mode", '')
 q_category = form.getfirst("category", '')
 q_tag = form.getfirst("tag", '')  # タグによる絞り込み用
+q_daiCategory = form.getfirst("daiCategory", '')  # 大分類による絞り込み用
+q_chuCategory = form.getfirst("chuCategory", '')  # 中分類による絞り込み用
+q_shoCategory = form.getfirst("shoCategory", '')  # 小分類による絞り込み用
 sort_by = form.getfirst("sort", 'update_date')  # デフォルトは更新日でソート
 sort_order = form.getfirst("order", 'desc')  # デフォルトは降順
 
@@ -71,8 +71,6 @@ create_担当者 = form.getfirst('create_担当者', '')
 create_大分類 = form.getfirst('create_大分類', '')
 create_中分類 = form.getfirst('create_中分類', '')
 create_小分類 = form.getfirst('create_小分類', '')
-
-
 
 # タスク情報の読み込み
 def getStatus(url, mode):
@@ -161,6 +159,46 @@ def getCategoryList():
                         result.append(config['STATUS']['CATEGORY'])
     return result
 
+# 分類データの読み込み
+def getClassifications():
+    classifications = []
+    classifications_file = script_path + "/classification.csv"
+    if os.path.exists(classifications_file):
+        with open(classifications_file, 'r', encoding=str_code) as file:
+            csv_reader = csv.reader(file)
+            for row in csv_reader:
+                if len(row) >= 3:
+                    classifications.append({
+                        'dai': row[0],
+                        'chu': row[1],
+                        'sho': row[2]
+                    })
+    return classifications
+
+# 分類一覧からユニークな大分類のリストを取得
+def getDaiCategories(classifications):
+    result = []
+    for item in classifications:
+        if item['dai'] not in result:
+            result.append(item['dai'])
+    return result
+
+# 特定の大分類に属する中分類のリストを取得
+def getChuCategories(classifications, dai_category):
+    result = []
+    for item in classifications:
+        if item['dai'] == dai_category and item['chu'] not in result:
+            result.append(item['chu'])
+    return result
+
+# 特定の大分類と中分類に属する小分類のリストを取得
+def getShoCategories(classifications, dai_category, chu_category):
+    result = []
+    for item in classifications:
+        if item['dai'] == dai_category and item['chu'] == chu_category and item['sho'] not in result:
+            result.append(item['sho'])
+    return result
+
 def header():
     print(f"""
 <html lang="ja">
@@ -178,7 +216,73 @@ def header():
                 max-height: 70vh;
                 overflow-y: auto;
             }}
+            .sidebar {{
+                min-height: calc(100vh - 70px);
+                background-color: #f8f9fa;
+                padding: 15px;
+            }}
+            .sidebar .nav-link {{
+                padding: 0.5rem 0;
+                color: #333;
+            }}
+            .sidebar .nav-link:hover {{
+                color: #0d6efd;
+            }}
+            .sidebar .nav-link.active {{
+                color: #0d6efd;
+                font-weight: bold;
+            }}
+            .sidebar .nav-item {{
+                padding-left: 10px;
+            }}
+            .chu-category, .sho-category {{
+                display: none;
+            }}
+            .show {{
+                display: block;
+            }}
         </style>
+""")
+    # JavaScriptコードを別途出力
+    print("""
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                // 大分類をクリックしたときのイベント
+                document.querySelectorAll('.dai-category').forEach(function(item) {
+                    item.addEventListener('click', function(e) {
+                        const daiCat = this.getAttribute('data-dai');
+                        
+                        // すべての中分類を非表示
+                        document.querySelectorAll('.chu-category').forEach(function(chu) {
+                            chu.style.display = 'none';
+                        });
+                        
+                        // 選択された大分類に属する中分類のみ表示
+                        document.querySelectorAll(`.chu-category[data-dai="${daiCat}"]`).forEach(function(chu) {
+                            chu.style.display = 'block';
+                        });
+                    });
+                });
+                
+                // 中分類をクリックしたときのイベント
+                document.querySelectorAll('.chu-category').forEach(function(item) {
+                    item.addEventListener('click', function(e) {
+                        const daiCat = this.getAttribute('data-dai');
+                        const chuCat = this.getAttribute('data-chu');
+                        
+                        // すべての小分類を非表示
+                        document.querySelectorAll('.sho-category').forEach(function(sho) {
+                            sho.style.display = 'none';
+                        });
+                        
+                        // 選択された大分類と中分類に属する小分類のみ表示
+                        document.querySelectorAll(`.sho-category[data-dai="${daiCat}"][data-chu="${chuCat}"]`).forEach(function(sho) {
+                            sho.style.display = 'block';
+                        });
+                    });
+                });
+            });
+        </script>
     </head>
     <body>
 """)
@@ -253,33 +357,97 @@ def footer():
 if __name__ == '__main__':
     print('Content-type: text/html; charset=UTF-8\r\n')
     # 一覧画面
-
     if mode == '':
+        header()
+        nav()
+
+        # 分類データを取得
+        classifications = getClassifications()
+        dai_categories = getDaiCategories(classifications)
+        
+        # サイドバー付きのレイアウト開始
+        print("""
+        <div class="container-fluid">
+            <div class="row">
+                <!-- サイドバー部分 -->
+                <div class="col-md-3 col-lg-2 sidebar">
+                    <h5 class="mb-3">分類から探す</h5>
+                    <div class="nav flex-column">
+        """)
+        
+        # 大分類を表示
+        for dai in dai_categories:
+            active_class = "active" if dai == q_daiCategory else ""
+            print(f"""
+                        <a href="./index.py?daiCategory={dai}" class="nav-link dai-category {active_class}" data-dai="{dai}">
+                            <i class="bi bi-folder"></i> {dai}
+                        </a>
+            """)
+            
+            # この大分類に属する中分類を取得
+            chu_categories = getChuCategories(classifications, dai)
+            for chu in chu_categories:
+                display_style = "block" if dai == q_daiCategory else "none"
+                active_class = "active" if chu == q_chuCategory and dai == q_daiCategory else ""
+                print(f"""
+                        <div class="nav-item chu-category" data-dai="{dai}" style="display: {display_style};">
+                            <a href="./index.py?daiCategory={dai}&chuCategory={chu}" class="nav-link {active_class}" data-dai="{dai}" data-chu="{chu}">
+                                <i class="bi bi-diagram-2"></i> {chu}
+                            </a>
+                        </div>
+                """)
+                
+                # この大分類と中分類に属する小分類を取得
+                sho_categories = getShoCategories(classifications, dai, chu)
+                for sho in sho_categories:
+                    display_style = "block" if dai == q_daiCategory and chu == q_chuCategory else "none"
+                    active_class = "active" if sho == q_shoCategory and chu == q_chuCategory and dai == q_daiCategory else ""
+                    print(f"""
+                            <div class="nav-item sho-category" data-dai="{dai}" data-chu="{chu}" style="display: {display_style};">
+                                <a href="./index.py?daiCategory={dai}&chuCategory={chu}&shoCategory={sho}" class="nav-link {active_class}">
+                                    <i class="bi bi-tag"></i> {sho}
+                                </a>
+                            </div>
+                    """)
+        
+        print("""
+                    </div>
+                </div>
+                
+                <!-- メインコンテンツ部分 -->
+                <div class="col-md-9 col-lg-10">
+        """)
+
         files_file = [f for f in os.listdir(task_folder_path) if os.path.isdir(os.path.join(task_folder_path, f))]
-
-        # タスク情報を取得してリストに格納
+        files = []
         tasks = []
-        if len(files_file) > 0:
-            for file in files_file:
-                status = getStatus(task_folder_path+'/'+file+'/', "index")
-                status['id'] = file
-                tasks.append(status)
 
-        # ソート処理
-        if tasks:
+        if len(files_file) > 0:
+            # ファイル一覧取得
+            for file in files_file:
+                files.append(file)
+
+            # タスク情報格納
+            for task_id in files:
+                task = {}
+                task['id'] = task_id
+                task['detail'] = getStatus(task_folder_path + '/' + task_id+'/', "index")
+                tasks.append(task)
+
+            # ソート用の関数
             def get_sort_key(task):
                 # 最初にピン止めされたタスクを上に
-                pinned_priority = 0 if task['pinned'] else 1
+                pinned_priority = 0 if task['detail']['pinned'] else 1
                 
                 # 二次ソートのキーを取得
                 if sort_by == 'name':
-                    secondary_key = task['name'].lower()
+                    secondary_key = task['detail']['name'].lower()
                 elif sort_by in ['create_date', 'update_date']:
-                    secondary_key = datetime.datetime.strptime(task[sort_by], '%Y-%m-%dT%H:%M:%S')
+                    secondary_key = datetime.datetime.strptime(task['detail'][sort_by], '%Y-%m-%dT%H:%M:%S')
                 elif sort_by == 'category':
-                    secondary_key = task['category'].lower()
+                    secondary_key = task['detail']['category'].lower()
                 elif sort_by == 'status':
-                    secondary_key = task['status']
+                    secondary_key = task['detail']['status']
                 
                 # 降順の場合は比較を反転
                 if sort_order == 'desc' and sort_by in ['create_date', 'update_date']:
@@ -292,13 +460,65 @@ if __name__ == '__main__':
             # ソート実行
             tasks.sort(key=get_sort_key)
 
-        content = ""
-        if len(tasks) > 0:
+            # カテゴリフィルタリング
+            if q_category != "":
+                filtered_tasks = []
+                for task in tasks:
+                    if 'category' in task['detail'] and task['detail']['category'] == q_category:
+                        filtered_tasks.append(task)
+                tasks = filtered_tasks
+            
+            # タグフィルタリング
+            if q_tag != "":
+                filtered_tasks = []
+                for task in tasks:
+                    if 'tags' in task['detail'] and q_tag in task['detail']['tags']:
+                        filtered_tasks.append(task)
+                tasks = filtered_tasks
+                
+            # 大分類によるフィルタリング
+            if q_daiCategory != "":
+                filtered_tasks = []
+                for task in tasks:
+                    if '大分類' in task['detail'] and task['detail']['大分類'] == q_daiCategory:
+                        filtered_tasks.append(task)
+                tasks = filtered_tasks
+                
+            # 中分類によるフィルタリング
+            if q_chuCategory != "":
+                filtered_tasks = []
+                for task in tasks:
+                    if '中分類' in task['detail'] and task['detail']['中分類'] == q_chuCategory:
+                        filtered_tasks.append(task)
+                tasks = filtered_tasks
+                
+            # 小分類によるフィルタリング
+            if q_shoCategory != "":
+                filtered_tasks = []
+                for task in tasks:
+                    if '小分類' in task['detail'] and task['detail']['小分類'] == q_shoCategory:
+                        filtered_tasks.append(task)
+                tasks = filtered_tasks
+
+            # ピン止めされたタスクを先頭に表示
+            pinned_tasks = []
+            unpinned_tasks = []
+            
             for task in tasks:
-                if q_category == "" or q_category == task['category']:
-                    if q_tag == "" or q_tag in task['tags']:
-                        pin_icon_div = '<span class="fs-4">📌</span>' if task.get('pinned', False) else ''
-                        temp = """
+                if task['detail']['pinned']:
+                    pinned_tasks.append(task)
+                else:
+                    unpinned_tasks.append(task)
+                    
+            tasks = pinned_tasks + unpinned_tasks
+
+            content = ""
+            if len(tasks) > 0:
+                for task in tasks:
+                    if q_category == "" or q_category == task['detail']['category']:
+                        if q_tag == "" or q_tag in task['detail']['tags']:
+                            pin_icon_div = '<span class="fs-4">📌</span>' if task['detail'].get('pinned', False) else ''
+                            temp = """
         <div class="container my-3">
             <div class="card{card_color} shadow-sm">
                 <div class="card-body">
@@ -355,19 +575,19 @@ if __name__ == '__main__':
             </div>
         </div>
                     """.format(
-                        card_color=task['card_color'],
+                        card_color=task['detail']['card_color'],
                         file=task['id'],
-                        task_name=task['name'],
+                        task_name=task['detail']['name'],
                         pin_icon_div=pin_icon_div,
-                        incident=datetime.datetime.strptime(task.get('発生日', task['create_date']), '%Y-%m-%dT%H:%M:%S').strftime('%Y-%m-%d %H:%M:%S'),
-                        update=datetime.datetime.strptime(task['update_date'], '%Y-%m-%dT%H:%M:%S').strftime('%Y-%m-%d %H:%M:%S'),
-                        content=task['content'],
-                        status=task['status'],
-                        category=task['category'],
-                        担当者=task.get('担当者', ''),
-                        tag_links=' '.join([f'<a href="./index.py?tag={tag}" class="badge bg-secondary text-decoration-none me-1">{tag}</a>' for tag in task['tags']])
+                        incident=datetime.datetime.strptime(task['detail'].get('発生日', task['detail']['create_date']), '%Y-%m-%dT%H:%M:%S').strftime('%Y-%m-%d %H:%M:%S'),
+                        update=datetime.datetime.strptime(task['detail']['update_date'], '%Y-%m-%dT%H:%M:%S').strftime('%Y-%m-%d %H:%M:%S'),
+                        content=task['detail']['content'],
+                        status=task['detail']['status'],
+                        category=task['detail']['category'],
+                        担当者=task['detail'].get('担当者', ''),
+                        tag_links=' '.join([f'<a href="./index.py?tag={tag}" class="badge bg-secondary text-decoration-none me-1">{tag}</a>' for tag in task['detail']['tags']])
                     )
-                        content += temp
+                            content += temp
         else:
             content = """
         <div class="container">
@@ -379,9 +599,15 @@ if __name__ == '__main__':
                 </div>
             </div>
 """
-        header()
-        nav()
         print(content)
+        
+        # サイドバー付きのレイアウト終了
+        print("""
+                </div>
+            </div>
+        </div>
+        """)
+        
         footer()
 
 # 編集画面 --------------------------------------------------------------------------------------------
@@ -694,12 +920,8 @@ if __name__ == '__main__':
         config['DATA']['UPDATE_DATA'] = update_update_datetime
         config['STATUS']['STATUS'] = update_state_select
         config['STATUS']['CATEGORY'] = update_category_input
-        config['STATUS']['PINNED'] = str(update_pinned)
-        
-        # タグを保存（空白を除去してカンマで結合）
-        tags = [tag.strip() for tag in update_tags.split(',') if tag.strip()]
-        config['STATUS']['TAGS'] = ','.join(tags)
-
+        config['STATUS']['PINNED'] = str(update_pinned)  # 新規作成時はピン止めなし
+        config['STATUS']['TAGS'] = ','.join([tag.strip() for tag in update_tags.split(',') if tag.strip()])  # 新規作成時は空のタグで初期化
         config['STATUS']['担当者'] = update_担当者
         config['STATUS']['大分類'] = update_大分類
         config['STATUS']['中分類'] = update_中分類
@@ -881,7 +1103,7 @@ if __name__ == '__main__':
         config.set("STATUS", 'STATUS', create_state_select)
         config.set("STATUS", 'CATEGORY', create_category_input)
         config.set("STATUS", 'PINNED', str(create_pinned))  # 新規作成時はピン止めなし
-        config.set("STATUS", 'TAGS', create_tags)  # 新規作成時は空のタグで初期化
+        config.set("STATUS", 'TAGS', ','.join([tag.strip() for tag in create_tags.split(',') if tag.strip()]))  # 新規作成時は空のタグで初期化
         config.set("STATUS", '担当者', create_担当者)
         config.set("STATUS", '大分類', create_大分類)
         config.set("STATUS", '中分類', create_中分類)
