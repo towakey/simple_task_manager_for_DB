@@ -53,6 +53,9 @@ update_content = form.getfirst('update_content', '')
 update_pinned = form.getfirst('update_pinned', '') == 'on'  # チェックボックスの値を取得
 update_tags = form.getfirst('update_tags', '')  # タグ入力用
 update_担当者 = form.getfirst('update_担当者', '')
+update_大分類 = form.getfirst('update_大分類', '')
+update_中分類 = form.getfirst('update_中分類', '')
+update_小分類 = form.getfirst('update_小分類', '')
 
 # 作成用
 create_task_id = form.getfirst('create_task_id', '')
@@ -65,6 +68,9 @@ create_content = form.getfirst('create_content', '')
 create_pinned = form.getfirst('create_pinned', '') == 'on'  # チェックボックスの値を取得
 create_tags = form.getfirst('create_tags', '')  # タグ入力用
 create_担当者 = form.getfirst('create_担当者', '')
+create_大分類 = form.getfirst('create_大分類', '')
+create_中分類 = form.getfirst('create_中分類', '')
+create_小分類 = form.getfirst('create_小分類', '')
 
 
 
@@ -110,6 +116,21 @@ def getStatus(url, mode):
         result['担当者'] = config['STATUS']['担当者']
     else:
         result['担当者'] = ""
+
+    if "大分類" in map(lambda x:x[0].upper(), config.items("STATUS")):
+        result['大分類'] = config['STATUS']['大分類']
+    else:
+        result['大分類'] = ""
+
+    if "中分類" in map(lambda x:x[0].upper(), config.items("STATUS")):
+        result['中分類'] = config['STATUS']['中分類']
+    else:
+        result['中分類'] = ""
+
+    if "小分類" in map(lambda x:x[0].upper(), config.items("STATUS")):
+        result['小分類'] = config['STATUS']['小分類']
+    else:
+        result['小分類'] = ""
 
     f = open(url + '/contents.txt', 'r', encoding=str_code)
     content = f.read()
@@ -392,6 +413,25 @@ if __name__ == '__main__':
     <input type="text" id="assignee" name="update_担当者" value="{status.get('担当者', '')}" class="form-control"/>
 </div>"""
 
+        # 大分類、中分類、小分類の入力欄のHTML
+        大分類_html = f"""
+<div class="form-group mb-3">
+    <label for="majorCategory" class="form-label"><i class="bi bi-diagram-3"></i> 大分類</label>
+    <input type="text" id="majorCategory" name="update_大分類" value="{status.get('大分類', '')}" class="form-control"/>
+</div>"""
+
+        中分類_html = f"""
+<div class="form-group mb-3">
+    <label for="mediumCategory" class="form-label"><i class="bi bi-diagram-2"></i> 中分類</label>
+    <input type="text" id="mediumCategory" name="update_中分類" value="{status.get('中分類', '')}" class="form-control"/>
+</div>"""
+
+        小分類_html = f"""
+<div class="form-group mb-3">
+    <label for="minorCategory" class="form-label"><i class="bi bi-diagram-1"></i> 小分類</label>
+    <input type="text" id="minorCategory" name="update_小分類" value="{status.get('小分類', '')}" class="form-control"/>
+</div>"""
+
         create_html = f"""
 <div class="form-group mb-2">
     <label class="form-label"><i class="bi bi-calendar-plus"></i> 作成日</label>
@@ -484,6 +524,18 @@ if __name__ == '__main__':
                                 
                                 {tags_html}
                                 
+                                <div class="row mb-3">
+                                    <div class="col-md-4">
+                                        {大分類_html}
+                                    </div>
+                                    <div class="col-md-4">
+                                        {中分類_html}
+                                    </div>
+                                    <div class="col-md-4">
+                                        {小分類_html}
+                                    </div>
+                                </div>
+                                
                                 <div class="form-group mb-4">
                                     <label for="content" class="form-label"><i class="bi bi-card-text"></i> 内容</label>
                                     <textarea id="content" name="update_content" class="form-control" rows="10">{content}</textarea>
@@ -523,6 +575,9 @@ if __name__ == '__main__':
             担当者_html=担当者_html, 
             pinned_html=pinned_html, 
             tags_html=tags_html, 
+            大分類_html=大分類_html, 
+            中分類_html=中分類_html, 
+            小分類_html=小分類_html, 
             content=status["content"], 
             REQUEST_URL=REQUEST_URL
         ))
@@ -587,6 +642,16 @@ if __name__ == '__main__':
                             
                             <div class="row mb-3">
                                 <div class="col-md-12">
+                                    <div class="d-flex flex-wrap">
+                                        {status.get('大分類', '') and f'<span class="badge bg-primary me-2"><i class="bi bi-diagram-3"></i> 大分類: {status.get("大分類", "")}</span>' or ''}
+                                        {status.get('中分類', '') and f'<span class="badge bg-primary me-2"><i class="bi bi-diagram-2"></i> 中分類: {status.get("中分類", "")}</span>' or ''}
+                                        {status.get('小分類', '') and f'<span class="badge bg-primary me-2"><i class="bi bi-diagram-1"></i> 小分類: {status.get("小分類", "")}</span>' or ''}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-12">
                                     <small class="text-muted">
                                         <i class="bi bi-calendar-check"></i> 更新日: {datetime.datetime.strptime(status["update_date"], "%Y-%m-%dT%H:%M:%S").strftime("%Y-%m-%d %H:%M:%S")} &nbsp;|&nbsp; 
                                         <i class="bi bi-calendar-plus"></i> 作成日: {datetime.datetime.strptime(status["create_date"], "%Y-%m-%dT%H:%M:%S").strftime("%Y-%m-%d %H:%M:%S")}
@@ -636,6 +701,9 @@ if __name__ == '__main__':
         config['STATUS']['TAGS'] = ','.join(tags)
 
         config['STATUS']['担当者'] = update_担当者
+        config['STATUS']['大分類'] = update_大分類
+        config['STATUS']['中分類'] = update_中分類
+        config['STATUS']['小分類'] = update_小分類
 
         with open(script_path + '/task/'+update_task_id+'/config.ini', mode='w', encoding=str_code) as write_config:
             config.write(write_config)
@@ -693,6 +761,24 @@ if __name__ == '__main__':
     <input type="text" id="assignee" name="create_担当者" value="" class="form-control"/>
 </div>"""
 
+        create_大分類_html = f"""
+<div class="form-group mb-3">
+    <label for="majorCategory" class="form-label"><i class="bi bi-diagram-3"></i> 大分類</label>
+    <input type="text" id="majorCategory" name="create_大分類" value="" class="form-control"/>
+</div>"""
+
+        create_中分類_html = f"""
+<div class="form-group mb-3">
+    <label for="mediumCategory" class="form-label"><i class="bi bi-diagram-2"></i> 中分類</label>
+    <input type="text" id="mediumCategory" name="create_中分類" value="" class="form-control"/>
+</div>"""
+
+        create_小分類_html = f"""
+<div class="form-group mb-3">
+    <label for="minorCategory" class="form-label"><i class="bi bi-diagram-1"></i> 小分類</label>
+    <input type="text" id="minorCategory" name="create_小分類" value="" class="form-control"/>
+</div>"""
+
         header()
         nav()
 
@@ -734,6 +820,18 @@ if __name__ == '__main__':
                                 
                                 {tags_html}
                                 
+                                <div class="row mb-3">
+                                    <div class="col-md-4">
+                                        {create_大分類_html}
+                                    </div>
+                                    <div class="col-md-4">
+                                        {create_中分類_html}
+                                    </div>
+                                    <div class="col-md-4">
+                                        {create_小分類_html}
+                                    </div>
+                                </div>
+                                
                                 <div class="form-group mb-4">
                                     <label for="content" class="form-label"><i class="bi bi-card-text"></i> 内容</label>
                                     <textarea id="content" name="create_content" class="form-control" rows="10"></textarea>
@@ -763,7 +861,7 @@ if __name__ == '__main__':
                 </div>
             </div>
         </div>
-        """.format(uuid=uuid.uuid4(), create_html=create_html, update_html=update_html, status_html=status_html, category_html=category_html, create_担当者_html=create_担当者_html, pinned_html=pinned_html, tags_html=tags_html, REQUEST_URL=REQUEST_URL))
+        """.format(uuid=uuid.uuid4(), create_html=create_html, update_html=update_html, status_html=status_html, category_html=category_html, create_担当者_html=create_担当者_html, pinned_html=pinned_html, tags_html=tags_html, create_大分類_html=create_大分類_html, create_中分類_html=create_中分類_html, create_小分類_html=create_小分類_html, REQUEST_URL=REQUEST_URL))
         footer()
         
 # 作成処理 --------------------------------------------------------------------------------------------
@@ -785,6 +883,9 @@ if __name__ == '__main__':
         config.set("STATUS", 'PINNED', str(create_pinned))  # 新規作成時はピン止めなし
         config.set("STATUS", 'TAGS', create_tags)  # 新規作成時は空のタグで初期化
         config.set("STATUS", '担当者', create_担当者)
+        config.set("STATUS", '大分類', create_大分類)
+        config.set("STATUS", '中分類', create_中分類)
+        config.set("STATUS", '小分類', create_小分類)
 
         with open(script_path + '/task/'+create_task_id+'/config.ini', mode='w', encoding=str_code) as write_config:
             config.write(write_config)
