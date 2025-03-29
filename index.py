@@ -533,156 +533,81 @@ if __name__ == '__main__':
         status = {}
         status = getStatus(script_path + '/task/'+view_task_id+'/', "view")
 
-        # ピン止めチェックボックスのHTML
-        pinned_checked = 'checked' if status.get('pinned', False) else ''
-        pinned_html = f"""
-<div class="form-check">
-    <input class="form-check-input" type="checkbox" id="pinned" name="update_pinned" {pinned_checked} disabled>
-    <label class="form-check-label" for="pinned">ピン止めする</label>
-</div>"""
-
-        # タグ入力欄のHTML
-        tags_str = ', '.join(status.get('tags', []))
-        tags_html = f"""
-<div class="form-group mb-3">
-    <label for="tags" class="form-label"><i class="bi bi-tags"></i> タグ</label>
-    <input type="text" id="tags" name="update_tags" value="{tags_str}" class="form-control" placeholder="カンマ区切りでタグを入力 (例: 重要, 会議, TODO)" disabled/>
-    <small class="form-text text-muted">複数のタグをカンマ区切りで入力できます</small>
-</div>"""
-
-        # 担当者入力欄のHTML
-        担当者_html = f"""
-<div class="form-group mb-3">
-    <label for="assignee" class="form-label"><i class="bi bi-person"></i> 担当者</label>
-    <input type="text" id="assignee" name="update_担当者" value="{status.get('担当者', '')}" class="form-control" disabled/>
-</div>"""
-
-        create_html = f"""
-<div class="form-group mb-2">
-    <label class="form-label"><i class="bi bi-calendar-plus"></i> 作成日</label>
-    <p class="form-control-plaintext">{datetime.datetime.strptime(status["create_date"], "%Y-%m-%dT%H:%M:%S").strftime("%Y-%m-%d %H:%M:%S")}</p>
-</div>
-"""
-        update_html = f"""
-<div class="form-group mb-2">
-    <label class="form-label"><i class="bi bi-calendar-check"></i> 更新時間</label>
-    <p class="form-control-plaintext">{datetime.datetime.strptime(status['update_date'], '%Y-%m-%dT%H:%M:%S').strftime('%Y-%m-%d %H:%M:%S')}</p>
-</div>
-"""
-        # 状態選択のHTML修正
-        if status["status"] == '継続':
-            status_html = """
-<div class="form-group mb-3">
-    <label for="inputState" class="form-label"><i class="bi bi-list-check"></i> 状態</label>
-    <select id="inputState" class="form-select" name="update_state_select" disabled>
-        <option selected value="CONTINUE">継続</option>
-        <option value="COMPLETE">完了</option>
-    </select>
-</div>
-"""
-        elif status["status"] == '完了':
-            status_html = """
-<div class="form-group mb-3">
-    <label for="inputState" class="form-label"><i class="bi bi-list-check"></i> 状態</label>
-    <select id="inputState" class="form-select" name="update_state_select" disabled>
-        <option value="CONTINUE">継続</option>
-        <option selected value="COMPLETE">完了</option>
-    </select>
-</div>
-"""
-        else:
-            status_html = """
-<div class="form-group mb-3">
-    <label for="inputState" class="form-label"><i class="bi bi-list-check"></i> 状態</label>
-    <select id="inputState" class="form-select" name="update_state_select" disabled>
-        <option selected value="CONTINUE">継続</option>
-        <option value="COMPLETE">完了</option>
-    </select>
-</div>
-"""
-
-        category_html = f"""
-<div class="form-group mb-3">
-    <label for="category" class="form-label"><i class="bi bi-folder"></i> カテゴリー</label>
-    <input type="text" id="category" name="update_category_input" value="{status["category"]}" class="form-control" disabled/>
-</div>"""
-
+        # ピン止めアイコン
+        pin_icon_div = '<span class="fs-4">📌</span>' if status.get('pinned', False) else ''
+        
+        # タグリンク
+        tag_links = ' '.join([f'<span class="badge bg-secondary me-1">{tag}</span>' for tag in status.get('tags', [])])
+        
+        # カード色の設定（継続か完了かで背景色を変える）
+        card_color = " bg-secondary" if status["status"] == "完了" else ""
+        
         header()
         nav()
 
-        print("""
+        print(f"""
         <div class="container my-4">
             <div class="row justify-content-center">
                 <div class="col-lg-10">
-                    <div class="card shadow">
-                        <div class="card-header bg-info text-white">
-                            <h3 class="mb-0"><i class="bi bi-eye"></i> タスク詳細</h3>
-                        </div>
+                    <div class="card{card_color} shadow">
                         <div class="card-body">
-                            <form>
-                                <div class="form-group mb-3">
-                                    <label for="taskName" class="form-label"><i class="bi bi-file-earmark-text"></i> タスク名</label>
-                                    <input type="text" id="taskName" name="update_task_name" value="{task_name}" class="form-control form-control-lg" disabled/>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <div class="d-flex align-items-center">
+                                    <span class="badge bg-primary px-3 py-2 fs-6 me-3">
+                                        <i class="bi bi-folder2-open"></i> {status["category"]}
+                                    </span>
+                                    <h2 class="card-title mb-0">
+                                        {status["name"]}
+                                    </h2>
                                 </div>
-                                
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        {status_html}
-                                    </div>
-                                    <div class="col-md-6">
-                                        {category_html}
-                                    </div>
+                                <div>
+                                    {pin_icon_div}
                                 </div>
-                                
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        {担当者_html}
-                                    </div>
-                                    <div class="col-md-6">
-                                        {pinned_html}
-                                    </div>
+                            </div>
+                            
+                            <div class="mt-2">
+                                {tag_links}
+                            </div>
+                            
+                            <div class="card-text border p-3 bg-light my-3">
+                                {status["content"].replace(chr(10), '<br>')}
+                            </div>
+                            
+                            <!-- Task metadata with improved styling -->
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <span class="badge bg-info text-dark me-2">
+                                        <i class="bi bi-person-fill"></i> 担当者: {status.get('担当者', '')}
+                                    </span>
+                                    <span class="badge bg-secondary me-2">
+                                        <i class="bi bi-clock-history"></i> 状態: {status["status"]}
+                                    </span>
                                 </div>
-                                
-                                {tags_html}
-                                
-                                <div class="form-group mb-4">
-                                    <label for="content" class="form-label"><i class="bi bi-card-text"></i> 内容</label>
-                                    <textarea id="content" name="update_content" class="form-control" rows="10" disabled>{content}</textarea>
-                                    <small class="form-text text-muted">マークダウン記法が使用できます</small>
+                            </div>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-12">
+                                    <small class="text-muted">
+                                        <i class="bi bi-calendar-check"></i> 更新日: {datetime.datetime.strptime(status["update_date"], "%Y-%m-%dT%H:%M:%S").strftime("%Y-%m-%d %H:%M:%S")} &nbsp;|&nbsp; 
+                                        <i class="bi bi-calendar-plus"></i> 作成日: {datetime.datetime.strptime(status["create_date"], "%Y-%m-%dT%H:%M:%S").strftime("%Y-%m-%d %H:%M:%S")}
+                                    </small>
                                 </div>
-                                
-                                <div class="row mb-3">
-                                    <div class="col-md-6">
-                                        {create_html}
-                                    </div>
-                                    <div class="col-md-6">
-                                        {update_html}
-                                    </div>
-                                </div>
-                                
-                                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                                    <a href="./index.py" class="btn btn-secondary me-md-2">
-                                        <i class="bi bi-x-circle"></i> 戻る
-                                    </a>
-                                </div>
-                            </form>
+                            </div>
+                            
+                            <div class="d-flex">
+                                <a href="./index.py" class="btn btn-secondary me-2">
+                                    <i class="bi bi-arrow-left"></i> 戻る
+                                </a>
+                                <a href="./index.py?mode=edit&edit_task_id={view_task_id}" class="btn btn-primary">
+                                    <i class="bi bi-pencil"></i> 編集
+                                </a>
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        """.format(
-            view_task_id=view_task_id, 
-            task_name=status["name"], 
-            create_html=create_html, 
-            update_html=update_html, 
-            status_html=status_html, 
-            category_html=category_html, 
-            担当者_html=担当者_html, 
-            pinned_html=pinned_html, 
-            tags_html=tags_html, 
-            content=status["content"]
-        ))
+        """)
         footer()
 
 # 更新処理 --------------------------------------------------------------------------------------------
