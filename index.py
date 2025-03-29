@@ -297,23 +297,19 @@ if __name__ == '__main__':
                         </div>
                     </div>
                     
+                    <div class="mt-2">
+                        {tag_links}
+                    </div>
+                    <div class="card-text border p-3 bg-light my-3">
+                        {content}
+                    </div>
                     <!-- Task metadata with improved styling -->
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <span class="badge bg-info text-dark me-2">
                                 <i class="bi bi-person-fill"></i> 担当者: {担当者}
                             </span>
-                            <span class="badge bg-secondary me-2">
-                                <i class="bi bi-clock-history"></i> 状態: {status}
-                            </span>
                         </div>
-                    </div>
-                    
-                    <div class="mt-2">
-                        {tag_links}
-                    </div>
-                    <div class="card-text border p-3 bg-light my-3">
-                        {content}
                     </div>
                     
                     <div class="row mb-3">
