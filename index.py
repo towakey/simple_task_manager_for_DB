@@ -33,6 +33,7 @@ form = cgi.FieldStorage()
 mode = form.getfirst("mode", '')
 q_category = form.getfirst("category", '')
 q_tag = form.getfirst("tag", '')  # タグによる絞り込み用
+q_groupCategory = form.getfirst("groupCategory", '')  # グループによる絞り込み用
 q_daiCategory = form.getfirst("daiCategory", '')  # 大分類による絞り込み用
 q_chuCategory = form.getfirst("chuCategory", '')  # 中分類による絞り込み用
 q_shoCategory = form.getfirst("shoCategory", '')  # 小分類による絞り込み用
@@ -53,6 +54,7 @@ update_content = form.getfirst('update_content', '')
 update_pinned = form.getfirst('update_pinned', '') == 'on'  # チェックボックスの値を取得
 update_tags = form.getfirst('update_tags', '')  # タグ入力用
 update_担当者 = form.getfirst('update_担当者', '')
+update_groupCategory = form.getfirst('update_groupCategory', '')
 update_大分類 = form.getfirst('update_大分類', '')
 update_中分類 = form.getfirst('update_中分類', '')
 update_小分類 = form.getfirst('update_小分類', '')
@@ -68,6 +70,7 @@ create_content = form.getfirst('create_content', '')
 create_pinned = form.getfirst('create_pinned', '') == 'on'  # チェックボックスの値を取得
 create_tags = form.getfirst('create_tags', '')  # タグ入力用
 create_担当者 = form.getfirst('create_担当者', '')
+create_groupCategory = form.getfirst('create_groupCategory', '')
 create_大分類 = form.getfirst('create_大分類', '')
 create_中分類 = form.getfirst('create_中分類', '')
 create_小分類 = form.getfirst('create_小分類', '')
@@ -109,6 +112,11 @@ def getStatus(url, mode):
         result['category'] = config['STATUS']['CATEGORY']
     else:
         result['category'] = ""
+
+    if "GROUPCATEGORY" in map(lambda x:x[0].upper(), config.items("STATUS")):
+        result['groupCategory'] = config['STATUS']['GROUPCATEGORY']
+    else:
+        result['groupCategory'] = ""
 
     if "担当者" in map(lambda x:x[0].upper(), config.items("STATUS")):
         result['担当者'] = config['STATUS']['担当者']
@@ -167,35 +175,44 @@ def getClassifications():
         with open(classifications_file, 'r', encoding=str_code) as file:
             csv_reader = csv.reader(file)
             for row in csv_reader:
-                if len(row) >= 3:
+                if len(row) >= 4:
                     classifications.append({
-                        'dai': row[0],
-                        'chu': row[1],
-                        'sho': row[2]
+                        'group': row[0],
+                        'dai': row[1],
+                        'chu': row[2],
+                        'sho': row[3]
                     })
     return classifications
 
-# 分類一覧からユニークな大分類のリストを取得
-def getDaiCategories(classifications):
+# 分類一覧からユニークなグループのリストを取得
+def getGroupCategories(classifications):
     result = []
     for item in classifications:
-        if item['dai'] not in result:
+        if item['group'] not in result:
+            result.append(item['group'])
+    return result
+
+# 分類一覧からユニークな大分類のリストを取得
+def getDaiCategories(classifications, group_category=None):
+    result = []
+    for item in classifications:
+        if (group_category is None or item['group'] == group_category) and item['dai'] not in result:
             result.append(item['dai'])
     return result
 
-# 特定の大分類に属する中分類のリストを取得
-def getChuCategories(classifications, dai_category):
+# 特定のグループと大分類に属する中分類のリストを取得
+def getChuCategories(classifications, dai_category, group_category=None):
     result = []
     for item in classifications:
-        if item['dai'] == dai_category and item['chu'] not in result:
+        if (group_category is None or item['group'] == group_category) and item['dai'] == dai_category and item['chu'] not in result:
             result.append(item['chu'])
     return result
 
-# 特定の大分類と中分類に属する小分類のリストを取得
-def getShoCategories(classifications, dai_category, chu_category):
+# 特定のグループ、大分類、中分類に属する小分類のリストを取得
+def getShoCategories(classifications, dai_category, chu_category, group_category=None):
     result = []
     for item in classifications:
-        if item['dai'] == dai_category and item['chu'] == chu_category and item['sho'] not in result:
+        if (group_category is None or item['group'] == group_category) and item['dai'] == dai_category and item['chu'] == chu_category and item['sho'] not in result:
             result.append(item['sho'])
     return result
 
@@ -247,36 +264,65 @@ def header():
     print("""
         <script>
             document.addEventListener('DOMContentLoaded', function() {
-                // 大分類をクリックしたときのイベント
-                document.querySelectorAll('.dai-category').forEach(function(item) {
+                // グループをクリックしたときのイベント
+                document.querySelectorAll('.group-category').forEach(function(item) {
                     item.addEventListener('click', function(e) {
-                        const daiCat = this.getAttribute('data-dai');
+                        const groupCat = this.getAttribute('data-group');
+                        
+                        // すべての大分類を非表示
+                        document.querySelectorAll('.dai-category').forEach(function(dai) {
+                            dai.style.display = 'none';
+                        });
+                        
+                        // 選択されたグループに属する大分類のみ表示
+                        document.querySelectorAll(`.dai-category[data-group="${groupCat}"]`).forEach(function(dai) {
+                            dai.style.display = 'block';
+                        });
+                        
+                        // 中分類と小分類を非表示
+                        document.querySelectorAll('.chu-category, .sho-category').forEach(function(item) {
+                            item.style.display = 'none';
+                        });
+                    });
+                });
+                
+                // 大分類をクリックしたときのイベント
+                document.querySelectorAll('.dai-category a').forEach(function(item) {
+                    item.addEventListener('click', function(e) {
+                        const daiCat = this.parentElement.getAttribute('data-dai');
+                        const groupCat = this.parentElement.getAttribute('data-group');
                         
                         // すべての中分類を非表示
                         document.querySelectorAll('.chu-category').forEach(function(chu) {
                             chu.style.display = 'none';
                         });
                         
-                        // 選択された大分類に属する中分類のみ表示
-                        document.querySelectorAll(`.chu-category[data-dai="${daiCat}"]`).forEach(function(chu) {
+                        // 選択されたグループと大分類に属する中分類のみ表示
+                        document.querySelectorAll(`.chu-category[data-group="${groupCat}"][data-dai="${daiCat}"]`).forEach(function(chu) {
                             chu.style.display = 'block';
+                        });
+                        
+                        // すべての小分類を非表示
+                        document.querySelectorAll('.sho-category').forEach(function(sho) {
+                            sho.style.display = 'none';
                         });
                     });
                 });
                 
                 // 中分類をクリックしたときのイベント
-                document.querySelectorAll('.chu-category').forEach(function(item) {
+                document.querySelectorAll('.chu-category a').forEach(function(item) {
                     item.addEventListener('click', function(e) {
-                        const daiCat = this.getAttribute('data-dai');
-                        const chuCat = this.getAttribute('data-chu');
+                        const daiCat = this.parentElement.getAttribute('data-dai');
+                        const chuCat = this.parentElement.getAttribute('data-chu');
+                        const groupCat = this.parentElement.getAttribute('data-group');
                         
                         // すべての小分類を非表示
                         document.querySelectorAll('.sho-category').forEach(function(sho) {
                             sho.style.display = 'none';
                         });
                         
-                        // 選択された大分類と中分類に属する小分類のみ表示
-                        document.querySelectorAll(`.sho-category[data-dai="${daiCat}"][data-chu="${chuCat}"]`).forEach(function(sho) {
+                        // 選択されたグループ、大分類と中分類に属する小分類のみ表示
+                        document.querySelectorAll(`.sho-category[data-group="${groupCat}"][data-dai="${daiCat}"][data-chu="${chuCat}"]`).forEach(function(sho) {
                             sho.style.display = 'block';
                         });
                     });
@@ -363,6 +409,7 @@ if __name__ == '__main__':
 
         # 分類データを取得
         classifications = getClassifications()
+        group_categories = getGroupCategories(classifications)
         dai_categories = getDaiCategories(classifications)
         
         # サイドバー付きのレイアウト開始
@@ -375,40 +422,53 @@ if __name__ == '__main__':
                     <div class="nav flex-column">
         """)
         
-        # 大分類を表示
-        for dai in dai_categories:
-            active_class = "active" if dai == q_daiCategory else ""
+        # グループを表示
+        for group in group_categories:
+            active_class = "active" if group == q_groupCategory else ""
             print(f"""
-                        <a href="./index.py?daiCategory={dai}" class="nav-link dai-category {active_class}" data-dai="{dai}">
-                            <i class="bi bi-folder"></i> {dai}
+                        <a href="./index.py?groupCategory={group}" class="nav-link group-category {active_class}" data-group="{group}">
+                            <i class="bi bi-folder"></i> {group}
                         </a>
             """)
             
-            # この大分類に属する中分類を取得
-            chu_categories = getChuCategories(classifications, dai)
-            for chu in chu_categories:
-                display_style = "block" if dai == q_daiCategory else "none"
-                active_class = "active" if chu == q_chuCategory and dai == q_daiCategory else ""
+            # このグループに属する大分類を取得
+            dai_categories_in_group = getDaiCategories(classifications, group)
+            for dai in dai_categories_in_group:
+                display_style = "block" if group == q_groupCategory else "none"
+                active_class = "active" if dai == q_daiCategory and group == q_groupCategory else ""
                 print(f"""
-                        <div class="nav-item chu-category" data-dai="{dai}" style="display: {display_style};">
-                            <a href="./index.py?daiCategory={dai}&chuCategory={chu}" class="nav-link {active_class}" data-dai="{dai}" data-chu="{chu}">
-                                <i class="bi bi-diagram-2"></i> {chu}
+                        <div class="nav-item dai-category" data-group="{group}" data-dai="{dai}" style="display: {display_style};">
+                            <a href="./index.py?groupCategory={group}&daiCategory={dai}" class="nav-link {active_class}">
+                                <i class="bi bi-diagram-3"></i> {dai}
                             </a>
                         </div>
                 """)
                 
-                # この大分類と中分類に属する小分類を取得
-                sho_categories = getShoCategories(classifications, dai, chu)
-                for sho in sho_categories:
-                    display_style = "block" if dai == q_daiCategory and chu == q_chuCategory else "none"
-                    active_class = "active" if sho == q_shoCategory and chu == q_chuCategory and dai == q_daiCategory else ""
+                # このグループと大分類に属する中分類を取得
+                chu_categories = getChuCategories(classifications, dai, group)
+                for chu in chu_categories:
+                    display_style = "block" if group == q_groupCategory and dai == q_daiCategory else "none"
+                    active_class = "active" if chu == q_chuCategory and dai == q_daiCategory and group == q_groupCategory else ""
                     print(f"""
-                            <div class="nav-item sho-category" data-dai="{dai}" data-chu="{chu}" style="display: {display_style};">
-                                <a href="./index.py?daiCategory={dai}&chuCategory={chu}&shoCategory={sho}" class="nav-link {active_class}">
-                                    <i class="bi bi-tag"></i> {sho}
+                            <div class="nav-item chu-category" data-group="{group}" data-dai="{dai}" data-chu="{chu}" style="display: {display_style};">
+                                <a href="./index.py?groupCategory={group}&daiCategory={dai}&chuCategory={chu}" class="nav-link {active_class}">
+                                    <i class="bi bi-diagram-2"></i> {chu}
                                 </a>
                             </div>
                     """)
+                    
+                    # このグループ、大分類、中分類に属する小分類を取得
+                    sho_categories = getShoCategories(classifications, dai, chu, group)
+                    for sho in sho_categories:
+                        display_style = "block" if group == q_groupCategory and dai == q_daiCategory and chu == q_chuCategory else "none"
+                        active_class = "active" if sho == q_shoCategory and chu == q_chuCategory and dai == q_daiCategory and group == q_groupCategory else ""
+                        print(f"""
+                                <div class="nav-item sho-category" data-group="{group}" data-dai="{dai}" data-chu="{chu}" data-sho="{sho}" style="display: {display_style};">
+                                    <a href="./index.py?groupCategory={group}&daiCategory={dai}&chuCategory={chu}&shoCategory={sho}" class="nav-link {active_class}">
+                                        <i class="bi bi-diagram-1"></i> {sho}
+                                    </a>
+                                </div>
+                        """)
         
         print("""
                     </div>
@@ -473,6 +533,14 @@ if __name__ == '__main__':
                 filtered_tasks = []
                 for task in tasks:
                     if 'tags' in task['detail'] and q_tag in task['detail']['tags']:
+                        filtered_tasks.append(task)
+                tasks = filtered_tasks
+                
+            # グループによるフィルタリング
+            if q_groupCategory != "":
+                filtered_tasks = []
+                for task in tasks:
+                    if 'groupCategory' in task['detail'] and task['detail']['groupCategory'] == q_groupCategory:
                         filtered_tasks.append(task)
                 tasks = filtered_tasks
                 
@@ -639,6 +707,13 @@ if __name__ == '__main__':
     <input type="text" id="assignee" name="update_担当者" value="{status.get('担当者', '')}" class="form-control"/>
 </div>"""
 
+        # グループ入力欄のHTML
+        group_html = f"""
+<div class="form-group mb-3">
+    <label for="group" class="form-label"><i class="bi bi-people"></i> グループ</label>
+    <input type="text" id="group" name="update_groupCategory" value="{status.get('groupCategory', '')}" class="form-control"/>
+</div>"""
+
         # 大分類、中分類、小分類の入力欄のHTML
         大分類_html = f"""
 <div class="form-group mb-3">
@@ -741,8 +816,14 @@ if __name__ == '__main__':
                                 
                                 <div class="row mb-3">
                                     <div class="col-md-6">
+                                        {group_html}
+                                    </div>
+                                    <div class="col-md-6">
                                         {担当者_html}
                                     </div>
+                                </div>
+                                
+                                <div class="row mb-3">
                                     <div class="col-md-6">
                                         {pinned_html}
                                     </div>
@@ -798,6 +879,7 @@ if __name__ == '__main__':
             update_html=update_html, 
             status_html=status_html, 
             category_html=category_html, 
+            group_html=group_html, 
             担当者_html=担当者_html, 
             pinned_html=pinned_html, 
             tags_html=tags_html, 
@@ -869,6 +951,7 @@ if __name__ == '__main__':
                             <div class="row mb-3">
                                 <div class="col-md-12">
                                     <div class="d-flex flex-wrap">
+                                        {status.get('groupCategory', '') and f'<span class="badge bg-primary me-2"><i class="bi bi-people"></i> グループ: {status.get("groupCategory", "")}</span>' or ''}
                                         {status.get('大分類', '') and f'<span class="badge bg-primary me-2"><i class="bi bi-diagram-3"></i> 大分類: {status.get("大分類", "")}</span>' or ''}
                                         {status.get('中分類', '') and f'<span class="badge bg-primary me-2"><i class="bi bi-diagram-2"></i> 中分類: {status.get("中分類", "")}</span>' or ''}
                                         {status.get('小分類', '') and f'<span class="badge bg-primary me-2"><i class="bi bi-diagram-1"></i> 小分類: {status.get("小分類", "")}</span>' or ''}
@@ -922,6 +1005,7 @@ if __name__ == '__main__':
         config['STATUS']['CATEGORY'] = update_category_input
         config['STATUS']['PINNED'] = str(update_pinned)  # 新規作成時はピン止めなし
         config['STATUS']['TAGS'] = ','.join([tag.strip() for tag in update_tags.split(',') if tag.strip()])  # 新規作成時は空のタグで初期化
+        config['STATUS']['GROUPCATEGORY'] = update_groupCategory
         config['STATUS']['担当者'] = update_担当者
         config['STATUS']['大分類'] = update_大分類
         config['STATUS']['中分類'] = update_中分類
@@ -983,6 +1067,12 @@ if __name__ == '__main__':
     <input type="text" id="assignee" name="create_担当者" value="" class="form-control"/>
 </div>"""
 
+        create_group_html = f"""
+<div class="form-group mb-3">
+    <label for="group" class="form-label"><i class="bi bi-people"></i> グループ</label>
+    <input type="text" id="group" name="create_groupCategory" value="" class="form-control"/>
+</div>"""
+
         create_大分類_html = f"""
 <div class="form-group mb-3">
     <label for="majorCategory" class="form-label"><i class="bi bi-diagram-3"></i> 大分類</label>
@@ -1033,8 +1123,14 @@ if __name__ == '__main__':
                                 
                                 <div class="row mb-3">
                                     <div class="col-md-6">
+                                        {create_group_html}
+                                    </div>
+                                    <div class="col-md-6">
                                         {create_担当者_html}
                                     </div>
+                                </div>
+                                
+                                <div class="row mb-3">
                                     <div class="col-md-6">
                                         {pinned_html}
                                     </div>
@@ -1083,7 +1179,7 @@ if __name__ == '__main__':
                 </div>
             </div>
         </div>
-        """.format(uuid=uuid.uuid4(), create_html=create_html, update_html=update_html, status_html=status_html, category_html=category_html, create_担当者_html=create_担当者_html, pinned_html=pinned_html, tags_html=tags_html, create_大分類_html=create_大分類_html, create_中分類_html=create_中分類_html, create_小分類_html=create_小分類_html, REQUEST_URL=REQUEST_URL))
+        """.format(uuid=uuid.uuid4(), create_html=create_html, update_html=update_html, status_html=status_html, category_html=category_html, create_group_html=create_group_html, create_担当者_html=create_担当者_html, pinned_html=pinned_html, tags_html=tags_html, create_大分類_html=create_大分類_html, create_中分類_html=create_中分類_html, create_小分類_html=create_小分類_html, REQUEST_URL=REQUEST_URL))
         footer()
         
 # 作成処理 --------------------------------------------------------------------------------------------
@@ -1104,6 +1200,7 @@ if __name__ == '__main__':
         config.set("STATUS", 'CATEGORY', create_category_input)
         config.set("STATUS", 'PINNED', str(create_pinned))  # 新規作成時はピン止めなし
         config.set("STATUS", 'TAGS', ','.join([tag.strip() for tag in create_tags.split(',') if tag.strip()]))  # 新規作成時は空のタグで初期化
+        config.set("STATUS", 'GROUPCATEGORY', create_groupCategory)
         config.set("STATUS", '担当者', create_担当者)
         config.set("STATUS", '大分類', create_大分類)
         config.set("STATUS", '中分類', create_中分類)
