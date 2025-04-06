@@ -1137,6 +1137,8 @@ if __name__ == '__main__':
                                 <input type="hidden" name="mode" value="write"/>
                                 <input type="hidden" name="create_task_id" value="{uuid}" />
                                 
+                                {regular_html}
+                                
                                 <div class="form-group mb-3">
                                     <label for="taskName" class="form-label"><i class="bi bi-file-earmark-text"></i> タスク名</label>
                                     <input type="text" id="taskName" name="create_task_name" class="form-control form-control-lg" required/>
@@ -1179,8 +1181,6 @@ if __name__ == '__main__':
                                         {create_小分類_html}
                                     </div>
                                 </div>
-                                
-                                {regular_html}
                                 
                                 <div class="form-group mb-4">
                                     <label for="content" class="form-label"><i class="bi bi-card-text"></i> 内容</label>
