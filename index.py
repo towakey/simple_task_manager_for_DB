@@ -282,7 +282,7 @@ def header():
                         });
                         
                         // 選択されたグループに属する大分類のみ表示
-                        document.querySelectorAll(`.dai-category[data-group="${groupCat}"]`).forEach(function(dai) {
+                        document.querySelectorAll(`.dai-category[data-group="${{groupCat}}"]`).forEach(function(dai) {
                             dai.style.display = 'block';
                         });
                         
@@ -305,7 +305,7 @@ def header():
                         });
                         
                         // 選択されたグループと大分類に属する中分類のみ表示
-                        document.querySelectorAll(`.chu-category[data-group="${groupCat}"][data-dai="${daiCat}"]`).forEach(function(chu) {
+                        document.querySelectorAll(`.chu-category[data-group="${{groupCat}}"][data-dai="${{daiCat}}"]`).forEach(function(chu) {
                             chu.style.display = 'block';
                         });
                         
@@ -329,7 +329,7 @@ def header():
                         });
                         
                         // 選択されたグループ、大分類と中分類に属する小分類のみ表示
-                        document.querySelectorAll(`.sho-category[data-group="${groupCat}"][data-dai="${daiCat}"][data-chu="${chuCat}"]`).forEach(function(sho) {
+                        document.querySelectorAll(`.sho-category[data-group="${{groupCat}}"][data-dai="${{daiCat}}"][data-chu="${{chuCat}}"]`).forEach(function(sho) {
                             sho.style.display = 'block';
                         });
                     });
@@ -801,6 +801,30 @@ if __name__ == '__main__':
     <input type="text" id="category" name="update_category_input" value="{status["category"]}" class="form-control"/>
 </div>"""
 
+        # JavaScriptのための変数準備
+        update_regular_js = """
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const regularSwitch = document.getElementById('update_regular');
+    const cardElement = regularSwitch.closest('.card');
+    
+    // 初期状態の設定（デフォルトはchecked=trueなのでborder-info）
+    cardElement.classList.add('border-info');
+    
+    // スイッチの変更を監視
+    regularSwitch.addEventListener('change', function() {
+        if (this.checked) {
+            cardElement.classList.remove('border-danger');
+            cardElement.classList.add('border-info');
+        } else {
+            cardElement.classList.remove('border-info');
+            cardElement.classList.add('border-danger');
+        }
+    });
+});
+</script>
+"""
+
         header()
         nav()
 
@@ -891,6 +915,9 @@ if __name__ == '__main__':
                 </div>
             </div>
         </div>
+        
+        {update_regular_js}
+        
         """.format(
             edit_task_id=edit_task_id, 
             task_name=status["name"], 
@@ -907,6 +934,7 @@ if __name__ == '__main__':
             小分類_html=小分類_html, 
             regular_html=regular_html, 
             content=status["content"], 
+            update_regular_js=update_regular_js,
             REQUEST_URL=REQUEST_URL
         ))
         footer()
@@ -1121,6 +1149,30 @@ if __name__ == '__main__':
 </div>
 """
 
+        # JavaScriptのための変数準備
+        create_regular_js = """
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const regularSwitch = document.getElementById('create_regular');
+    const cardElement = regularSwitch.closest('.card');
+    
+    // 初期状態の設定（デフォルトはchecked=trueなのでborder-info）
+    cardElement.classList.add('border-info');
+    
+    // スイッチの変更を監視
+    regularSwitch.addEventListener('change', function() {
+        if (this.checked) {
+            cardElement.classList.remove('border-danger');
+            cardElement.classList.add('border-info');
+        } else {
+            cardElement.classList.remove('border-info');
+            cardElement.classList.add('border-danger');
+        }
+    });
+});
+</script>
+"""
+
         header()
         nav()
 
@@ -1211,7 +1263,11 @@ if __name__ == '__main__':
                 </div>
             </div>
         </div>
-        """.format(uuid=uuid.uuid4(), create_html=create_html, update_html=update_html, status_html=status_html, category_html=category_html, create_group_html=create_group_html, create_担当者_html=create_担当者_html, pinned_html=pinned_html, tags_html=tags_html, create_大分類_html=create_大分類_html, create_中分類_html=create_中分類_html, create_小分類_html=create_小分類_html, regular_html=regular_html, REQUEST_URL=REQUEST_URL))
+        
+        {create_regular_js}
+        
+        """.format(uuid=uuid.uuid4(), create_html=create_html, update_html=update_html, status_html=status_html, category_html=category_html, create_group_html=create_group_html, create_担当者_html=create_担当者_html, pinned_html=pinned_html, tags_html=tags_html, create_大分類_html=create_大分類_html, create_中分類_html=create_中分類_html, create_小分類_html=create_小分類_html, regular_html=regular_html, create_regular_js=create_regular_js, REQUEST_URL=REQUEST_URL))
+        
         footer()
         
 # 作成処理 --------------------------------------------------------------------------------------------
