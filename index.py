@@ -594,9 +594,11 @@ if __name__ == '__main__':
                         if q_tag == "" or q_tag in task['detail']['tags']:
                             pin_icon_div = '<span class="fs-4">📌</span>' if task['detail'].get('pinned', False) else ''
                             regular_badge = '<span class="badge bg-info me-1">Regular</span>' if task['detail'].get('regular', 'Regular') == 'Regular' else '<span class="badge bg-warning me-1">Irregular</span>'
+                            border_class = " border-info" if task['detail'].get('regular', 'Regular') == 'Regular' else " border-danger"
+
                             temp = """
         <div class="container my-3">
-            <div class="card{card_color} shadow-sm">
+            <div class="card{card_color}{border_class} shadow-sm">
                 <div class="card-body">
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <div class="d-flex align-items-center">
@@ -658,7 +660,8 @@ if __name__ == '__main__':
                         category=task['detail']['category'],
                         担当者=task['detail'].get('担当者', ''),
                         tag_links=' '.join([f'<a href="./index.py?tag={tag}" class="badge bg-secondary text-decoration-none me-1">{tag}</a>' for tag in task['detail']['tags']]),
-                        regular_badge=regular_badge
+                        regular_badge=regular_badge,
+                        border_class=border_class
                     )
                             content += temp
         else:
