@@ -58,6 +58,7 @@ update_groupCategory = form.getfirst('update_groupCategory', '')
 update_大分類 = form.getfirst('update_大分類', '')
 update_中分類 = form.getfirst('update_中分類', '')
 update_小分類 = form.getfirst('update_小分類', '')
+update_regular = form.getfirst('update_regular', 'off') == 'on'  # スイッチの値を取得 (on/off)
 
 # 作成用
 create_task_id = form.getfirst('create_task_id', '')
@@ -74,6 +75,7 @@ create_groupCategory = form.getfirst('create_groupCategory', '')
 create_大分類 = form.getfirst('create_大分類', '')
 create_中分類 = form.getfirst('create_中分類', '')
 create_小分類 = form.getfirst('create_小分類', '')
+create_regular = form.getfirst('create_regular', 'off') == 'on'  # スイッチの値を取得 (on/off)
 
 # タスク情報の読み込み
 def getStatus(url, mode):
@@ -137,6 +139,11 @@ def getStatus(url, mode):
         result['小分類'] = config['STATUS']['小分類']
     else:
         result['小分類'] = ""
+
+    if "REGULAR" in map(lambda x:x[0].upper(), config.items("STATUS")):
+        result['regular'] = config['STATUS']['REGULAR']
+    else:
+        result['regular'] = "Regular"
 
     f = open(url + '/contents.txt', 'r', encoding=str_code)
     content = f.read()
@@ -586,6 +593,7 @@ if __name__ == '__main__':
                     if q_category == "" or q_category == task['detail']['category']:
                         if q_tag == "" or q_tag in task['detail']['tags']:
                             pin_icon_div = '<span class="fs-4">📌</span>' if task['detail'].get('pinned', False) else ''
+                            regular_badge = '<span class="badge bg-info me-1">Regular</span>' if task['detail'].get('regular', 'Regular') == 'Regular' else '<span class="badge bg-warning me-1">Irregular</span>'
                             temp = """
         <div class="container my-3">
             <div class="card{card_color} shadow-sm">
@@ -593,13 +601,9 @@ if __name__ == '__main__':
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <div class="d-flex align-items-center">
                             <a href="./index.py?category={category}" class="text-decoration-none me-3">
-                                <span class="badge bg-primary px-3 py-2 fs-6">
-                                    <i class="bi bi-folder2-open"></i> {category}
-                                </span>
+                                <span class="badge bg-primary">{category}</span>
                             </a>
-                            <h2 class="card-title mb-0">
-                                {task_name}
-                            </h2>
+                            {regular_badge}
                         </div>
                         <div>
                             {pin_icon_div}
@@ -625,7 +629,7 @@ if __name__ == '__main__':
                         <div class="col-md-12">
                             <small class="text-muted">
                                 <i class="bi bi-calendar-check"></i> 更新日: {update} &nbsp;|&nbsp; 
-                                <i class="bi bi-calendar-plus"></i> 発生日: {incident}
+                                <i class="bi bi-calendar-plus"></i> 作成日: {incident}
                             </small>
                         </div>
                     </div>
@@ -653,7 +657,8 @@ if __name__ == '__main__':
                         status=task['detail']['status'],
                         category=task['detail']['category'],
                         担当者=task['detail'].get('担当者', ''),
-                        tag_links=' '.join([f'<a href="./index.py?tag={tag}" class="badge bg-secondary text-decoration-none me-1">{tag}</a>' for tag in task['detail']['tags']])
+                        tag_links=' '.join([f'<a href="./index.py?tag={tag}" class="badge bg-secondary text-decoration-none me-1">{tag}</a>' for tag in task['detail']['tags']]),
+                        regular_badge=regular_badge
                     )
                             content += temp
         else:
@@ -732,6 +737,15 @@ if __name__ == '__main__':
     <label for="minorCategory" class="form-label"><i class="bi bi-diagram-1"></i> 小分類</label>
     <input type="text" id="minorCategory" name="update_小分類" value="{status.get('小分類', '')}" class="form-control"/>
 </div>"""
+
+        # Regular/Irregular スイッチのHTML
+        regular_checked = 'checked' if status.get('regular', 'Regular') == 'Regular' else ''
+        regular_html = f"""
+<div class="form-check form-switch mb-3">
+  <input class="form-check-input" type="checkbox" role="switch" id="update_regular" name="update_regular" {regular_checked}>
+  <label class="form-check-label" for="update_regular">定型タスク (Regular)</label>
+</div>
+"""
 
         create_html = f"""
 <div class="form-group mb-2">
@@ -843,6 +857,8 @@ if __name__ == '__main__':
                                     </div>
                                 </div>
                                 
+                                {regular_html}
+                                
                                 <div class="form-group mb-4">
                                     <label for="content" class="form-label"><i class="bi bi-card-text"></i> 内容</label>
                                     <textarea id="content" name="update_content" class="form-control" rows="10">{content}</textarea>
@@ -886,6 +902,7 @@ if __name__ == '__main__':
             大分類_html=大分類_html, 
             中分類_html=中分類_html, 
             小分類_html=小分類_html, 
+            regular_html=regular_html, 
             content=status["content"], 
             REQUEST_URL=REQUEST_URL
         ))
@@ -905,6 +922,9 @@ if __name__ == '__main__':
         # カード色の設定（継続か完了かで背景色を変える）
         card_color = " bg-secondary" if status["status"] == "完了" else ""
         
+        # Regular/Irregular バッジ
+        regular_badge = '<span class="badge bg-info me-1">Regular</span>' if status.get('regular', 'Regular') == 'Regular' else '<span class="badge bg-warning me-1">Irregular</span>'
+
         header()
         nav()
 
@@ -919,9 +939,7 @@ if __name__ == '__main__':
                                     <span class="badge bg-primary px-3 py-2 fs-6 me-3">
                                         <i class="bi bi-folder2-open"></i> {status["category"]}
                                     </span>
-                                    <h2 class="card-title mb-0">
-                                        {status["name"]}
-                                    </h2>
+                                    {regular_badge}
                                 </div>
                                 <div>
                                     {pin_icon_div}
@@ -1010,6 +1028,7 @@ if __name__ == '__main__':
         config['STATUS']['大分類'] = update_大分類
         config['STATUS']['中分類'] = update_中分類
         config['STATUS']['小分類'] = update_小分類
+        config['STATUS']['REGULAR'] = 'Regular' if update_regular else 'Irregular'
 
         with open(script_path + '/task/'+update_task_id+'/config.ini', mode='w', encoding=str_code) as write_config:
             config.write(write_config)
@@ -1091,6 +1110,14 @@ if __name__ == '__main__':
     <input type="text" id="minorCategory" name="create_小分類" value="" class="form-control"/>
 </div>"""
 
+        # Regular/Irregular スイッチのHTML
+        regular_html = """
+<div class="form-check form-switch mb-3">
+  <input class="form-check-input" type="checkbox" role="switch" id="create_regular" name="create_regular" checked>
+  <label class="form-check-label" for="create_regular">定型タスク (Regular)</label>
+</div>
+"""
+
         header()
         nav()
 
@@ -1150,6 +1177,8 @@ if __name__ == '__main__':
                                     </div>
                                 </div>
                                 
+                                {regular_html}
+                                
                                 <div class="form-group mb-4">
                                     <label for="content" class="form-label"><i class="bi bi-card-text"></i> 内容</label>
                                     <textarea id="content" name="create_content" class="form-control" rows="10"></textarea>
@@ -1179,7 +1208,7 @@ if __name__ == '__main__':
                 </div>
             </div>
         </div>
-        """.format(uuid=uuid.uuid4(), create_html=create_html, update_html=update_html, status_html=status_html, category_html=category_html, create_group_html=create_group_html, create_担当者_html=create_担当者_html, pinned_html=pinned_html, tags_html=tags_html, create_大分類_html=create_大分類_html, create_中分類_html=create_中分類_html, create_小分類_html=create_小分類_html, REQUEST_URL=REQUEST_URL))
+        """.format(uuid=uuid.uuid4(), create_html=create_html, update_html=update_html, status_html=status_html, category_html=category_html, create_group_html=create_group_html, create_担当者_html=create_担当者_html, pinned_html=pinned_html, tags_html=tags_html, create_大分類_html=create_大分類_html, create_中分類_html=create_中分類_html, create_小分類_html=create_小分類_html, regular_html=regular_html, REQUEST_URL=REQUEST_URL))
         footer()
         
 # 作成処理 --------------------------------------------------------------------------------------------
@@ -1205,6 +1234,7 @@ if __name__ == '__main__':
         config.set("STATUS", '大分類', create_大分類)
         config.set("STATUS", '中分類', create_中分類)
         config.set("STATUS", '小分類', create_小分類)
+        config.set("STATUS", 'REGULAR', 'Regular' if create_regular else 'Irregular')
 
         with open(script_path + '/task/'+create_task_id+'/config.ini', mode='w', encoding=str_code) as write_config:
             config.write(write_config)
