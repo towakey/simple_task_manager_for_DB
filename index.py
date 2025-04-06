@@ -600,6 +600,12 @@ if __name__ == '__main__':
         <div class="container my-3">
             <div class="card{card_color}{border_class} shadow-sm">
                 <div class="card-body">
+                    <h5 class="card-title mb-3 fw-bold">
+                        <a href="./index.py?mode=view&view_task_id={file}" class="text-decoration-none text-dark">
+                            {task_name}
+                        </a>
+                    </h5>
+                    
                     <div class="d-flex justify-content-between align-items-center mb-2">
                         <div class="d-flex align-items-center">
                             <a href="./index.py?category={category}" class="text-decoration-none me-3">
@@ -965,6 +971,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="col-lg-10">
                     <div class="card{card_color} shadow">
                         <div class="card-body">
+                            <h5 class="card-title mb-3 fw-bold">
+                                <a href="./index.py?mode=view&view_task_id={view_task_id}" class="text-decoration-none text-dark">
+                                    {status["name"]}
+                                </a>
+                            </h5>
+                            
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <div class="d-flex align-items-center">
                                     <span class="badge bg-primary px-3 py-2 fs-6 me-3">
