@@ -417,7 +417,6 @@ if __name__ == '__main__':
         # 分類データを取得
         classifications = getClassifications()
         group_categories = getGroupCategories(classifications)
-        dai_categories = getDaiCategories(classifications)
         
         # サイドバー付きのレイアウト開始
         print("""
@@ -510,7 +509,7 @@ if __name__ == '__main__':
                 if sort_by == 'name':
                     secondary_key = task['detail']['name'].lower()
                 elif sort_by in ['create_date', 'update_date']:
-                    secondary_key = datetime.datetime.strptime(task['detail'][sort_by], '%Y-%m-%dT%H:%M:%S')
+                    secondary_key = datetime.datetime.strptime(task['detail'][sort_by], '%Y/%m/%dT%H:%M:%S')
                 elif sort_by == 'category':
                     secondary_key = task['detail']['category'].lower()
                 elif sort_by == 'status':
@@ -659,8 +658,8 @@ if __name__ == '__main__':
                         file=task['id'],
                         task_name=task['detail']['name'],
                         pin_icon_div=pin_icon_div,
-                        incident=datetime.datetime.strptime(task['detail'].get('発生日', task['detail']['create_date']), '%Y-%m-%dT%H:%M:%S').strftime('%Y-%m-%d %H:%M:%S'),
-                        update=datetime.datetime.strptime(task['detail']['update_date'], '%Y-%m-%dT%H:%M:%S').strftime('%Y-%m-%d %H:%M:%S'),
+                        incident=datetime.datetime.strptime(task['detail'].get('発生日', task['detail']['create_date']), '%Y/%m/%dT%H:%M:%S').strftime('%Y-%m-%d %H:%M:%S'),
+                        update=datetime.datetime.strptime(task['detail']['update_date'], '%Y/%m/%dT%H:%M:%S').strftime('%Y-%m-%d %H:%M:%S'),
                         content=task['detail']['content'],
                         status=task['detail']['status'],
                         category=task['detail']['category'],
@@ -694,11 +693,49 @@ if __name__ == '__main__':
 
 # 編集画面 --------------------------------------------------------------------------------------------
     elif mode=="edit":
-        status = {}
-        status = getStatus(script_path + '/task/'+edit_task_id+'/', "edit")
+        # 編集対象のタスク情報を取得
+        target_task_file = script_path + '/task/'+edit_task_id
+        target_task_detail = getStatus(target_task_file, "detail")
+        with open(target_task_file+'/contents.txt', 'r', encoding=str_code) as f:
+            target_task_content = f.read()
+        
+        # プルダウンのオプションを作成
+        classifications = getClassifications()
+        group_categories = getGroupCategories(classifications)
+        
+        # 選択されたグループに基づく大分類を取得
+        selected_group = target_task_detail.get("groupCategory", "")
+        
+        group_options = ""
+        for group in group_categories:
+            selected = " selected" if group == selected_group else ""
+            group_options += f'<option value="{group}"{selected}>{group}</option>'
+        
+        # 大分類のオプションを作成
+        selected_dai = target_task_detail.get("大分類", "")
+        dai_options = ""
+        for dai in getDaiCategories(classifications, selected_group):
+            selected = " selected" if dai == selected_dai else ""
+            dai_options += f'<option value="{dai}"{selected}>{dai}</option>'
+        
+        # 中分類のオプションを作成
+        selected_chu = target_task_detail.get("中分類", "")
+        chu_options = ""
+        chuCategories = getChuCategories(classifications, selected_dai, selected_group)
+        for chu in chuCategories:
+            selected = " selected" if chu == selected_chu else ""
+            chu_options += f'<option value="{chu}"{selected}>{chu}</option>'
+        
+        # 小分類のオプションを作成
+        selected_sho = target_task_detail.get("小分類", "")
+        sho_options = ""
+        shoCategories = getShoCategories(classifications, selected_dai, selected_chu, selected_group)
+        for sho in shoCategories:
+            selected = " selected" if sho == selected_sho else ""
+            sho_options += f'<option value="{sho}"{selected}>{sho}</option>'
 
         # ピン止めチェックボックスのHTML
-        pinned_checked = 'checked' if status.get('pinned', False) else ''
+        pinned_checked = 'checked' if target_task_detail.get('pinned', False) else ''
         pinned_html = f"""
 <div class="form-check">
     <input class="form-check-input" type="checkbox" id="pinned" name="update_pinned" {pinned_checked}>
@@ -706,49 +743,60 @@ if __name__ == '__main__':
 </div>"""
 
         # タグ入力欄のHTML
-        tags_str = ', '.join(status.get('tags', []))
         tags_html = f"""
 <div class="form-group mb-3">
-    <label for="tags" class="form-label"><i class="bi bi-tags"></i> タグ</label>
-    <input type="text" id="tags" name="update_tags" value="{tags_str}" class="form-control" placeholder="カンマ区切りでタグを入力 (例: 重要, 会議, TODO)"/>
-    <small class="form-text text-muted">複数のタグをカンマ区切りで入力できます</small>
+    <label for="tags" class="form-label"><i class="bi bi-tags"></i> タグ（カンマ区切り）</label>
+    <input type="text" id="tags" name="update_tags" value="{target_task_detail.get('tags', '')}" class="form-control" placeholder="例：重要, フォローアップ, 会議"/>
 </div>"""
 
         # 担当者入力欄のHTML
         担当者_html = f"""
 <div class="form-group mb-3">
     <label for="assignee" class="form-label"><i class="bi bi-person"></i> 担当者</label>
-    <input type="text" id="assignee" name="update_担当者" value="{status.get('担当者', '')}" class="form-control"/>
+    <input type="text" id="assignee" name="update_担当者" value="{target_task_detail.get('担当者', '')}" class="form-control"/>
 </div>"""
 
-        # グループ入力欄のHTML
-        group_html = f"""
+        # グループ入力欄のHTML - ドロップダウンメニューに変更
+        create_group_html = f"""
 <div class="form-group mb-3">
     <label for="group" class="form-label"><i class="bi bi-people"></i> グループ</label>
-    <input type="text" id="group" name="update_groupCategory" value="{status.get('groupCategory', '')}" class="form-control"/>
+    <select id="group" name="update_groupCategory" class="form-select" onchange="updateDaiCategories()">
+        <option value="">選択してください</option>
+        {group_options}
+    </select>
 </div>"""
 
-        # 大分類、中分類、小分類の入力欄のHTML
-        大分類_html = f"""
+        # 大分類、中分類、小分類の入力欄のHTML - ドロップダウンメニューに変更
+        create_大分類_html = f"""
 <div class="form-group mb-3">
     <label for="majorCategory" class="form-label"><i class="bi bi-diagram-3"></i> 大分類</label>
-    <input type="text" id="majorCategory" name="update_大分類" value="{status.get('大分類', '')}" class="form-control"/>
+    <select id="majorCategory" name="update_大分類" class="form-select" onchange="updateChuCategories()">
+        <option value="">選択してください</option>
+        {dai_options}
+    </select>
 </div>"""
 
-        中分類_html = f"""
+        create_中分類_html = f"""
 <div class="form-group mb-3">
     <label for="mediumCategory" class="form-label"><i class="bi bi-diagram-2"></i> 中分類</label>
-    <input type="text" id="mediumCategory" name="update_中分類" value="{status.get('中分類', '')}" class="form-control"/>
+    <select id="mediumCategory" name="update_中分類" class="form-select" onchange="updateShoCategories()">
+        <option value="">選択してください</option>
+        {chu_options}
+    </select>
 </div>"""
 
-        小分類_html = f"""
+        create_小分類_html = f"""
 <div class="form-group mb-3">
-    <label for="minorCategory" class="form-label"><i class="bi bi-diagram-1"></i> 小分類</label>
-    <input type="text" id="minorCategory" name="update_小分類" value="{status.get('小分類', '')}" class="form-control"/>
+    <label for="smallCategory" class="form-label"><i class="bi bi-diagram-1"></i> 小分類</label>
+    <select id="smallCategory" name="update_小分類" class="form-select">
+        <option value="">選択してください</option>
+        {sho_options}
+    </select>
 </div>"""
 
         # Regular/Irregular スイッチのHTML
-        regular_checked = 'checked' if status.get('regular', 'Regular') == 'Regular' else ''
+        is_regular = target_task_detail.get('regular', 'Regular') == 'Regular'
+        regular_checked = "checked" if is_regular else ""
         regular_html = f"""
 <div class="form-check form-switch mb-3">
   <input class="form-check-input" type="checkbox" role="switch" id="update_regular" name="update_regular" {regular_checked}>
@@ -758,64 +806,158 @@ if __name__ == '__main__':
 
         create_html = f"""
 <div class="form-group mb-2">
-    <label class="form-label"><i class="bi bi-calendar-plus"></i> 作成日</label>
-    <p class="form-control-plaintext">{datetime.datetime.strptime(status["create_date"], "%Y-%m-%dT%H:%M:%S").strftime("%Y-%m-%d %H:%M:%S")}</p>
+    <label class="form-label"><i class="bi bi-calendar-plus"></i> 作成時間</label>
+    <p class="form-control-plaintext">{target_task_detail['create_date']}</p>
 </div>
 """
         update_html = f"""
 <div class="form-group mb-2">
     <label class="form-label"><i class="bi bi-calendar-check"></i> 更新時間</label>
-    <p class="form-control-plaintext">{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}</p>
-    <input type="hidden" name="update_update_datetime" value="{datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")}">
+    <p class="form-control-plaintext">{datetime.datetime.now().strftime("%Y/%m/%dT%H:%M:%S")}</p>
+    <input type="hidden" name="update_update_datetime" value="{datetime.datetime.now().strftime("%Y/%m/%dT%H:%M:%S")}">
 </div>
 """
         # 状態選択のHTML修正
-        if status["status"] == '継続':
-            status_html = """
-<div class="form-group mb-3">
-    <label for="inputState" class="form-label"><i class="bi bi-list-check"></i> 状態</label>
-    <select id="inputState" class="form-select" name="update_state_select">
-        <option selected value="CONTINUE">継続</option>
-        <option value="COMPLETE">完了</option>
-    </select>
-</div>
-"""
-        elif status["status"] == '完了':
-            status_html = """
-<div class="form-group mb-3">
-    <label for="inputState" class="form-label"><i class="bi bi-list-check"></i> 状態</label>
-    <select id="inputState" class="form-select" name="update_state_select">
-        <option value="CONTINUE">継続</option>
-        <option selected value="COMPLETE">完了</option>
-    </select>
-</div>
-"""
+        status_selected_continue = ""
+        status_selected_complete = ""
+        if target_task_detail['status'] == "完了":
+            status_selected_complete = "selected"
         else:
-            status_html = """
+            status_selected_continue = "selected"
+            
+        status_html = f"""
 <div class="form-group mb-3">
-    <label for="inputState" class="form-label"><i class="bi bi-list-check"></i> 状態</label>
-    <select id="inputState" class="form-select" name="update_state_select">
-        <option selected value="CONTINUE">継続</option>
-        <option value="COMPLETE">完了</option>
+    <label for="state" class="form-label"><i class="bi bi-flag"></i> ステータス</label>
+    <select id="state" name="update_state_select" class="form-select">
+        <option value="CONTINUE" {status_selected_continue}>継続</option>
+        <option value="COMPLETE" {status_selected_complete}>完了</option>
     </select>
-</div>
-"""
+</div>"""
 
         category_html = f"""
 <div class="form-group mb-3">
     <label for="category" class="form-label"><i class="bi bi-folder"></i> カテゴリー</label>
-    <input type="text" id="category" name="update_category_input" value="{status["category"]}" class="form-control"/>
+    <input type="text" id="category" name="update_category_input" value="{target_task_detail['category']}" class="form-control"/>
 </div>"""
 
         # JavaScriptのための変数準備
-        update_regular_js = """
+        create_regular_js = """
 <script>
+// 分類データ
+const classifications = """ + str(classifications).replace("'", '"') + """;
+
+// グループが変更されたときに大分類を更新
+function updateDaiCategories() {
+    const groupSelect = document.getElementById('group');
+    const daiSelect = document.getElementById('majorCategory');
+    const selectedGroup = groupSelect.value;
+    
+    // 大分類のオプションをクリア
+    daiSelect.innerHTML = '<option value="">選択してください</option>';
+    
+    // 選択されたグループに基づいて大分類を更新
+    const uniqueDai = new Set();
+    classifications.forEach(item => {
+        if (selectedGroup === '' || item.group === selectedGroup) {
+            uniqueDai.add(item.dai);
+        }
+    });
+    
+    // 大分類のオプションを追加
+    Array.from(uniqueDai).forEach(dai => {
+        const option = document.createElement('option');
+        option.value = dai;
+        option.textContent = dai;
+        daiSelect.appendChild(option);
+    });
+    
+    // 大分類が変更されたので、中分類と小分類も更新
+    updateChuCategories();
+}
+
+// 大分類が変更されたときに中分類を更新
+function updateChuCategories() {
+    const groupSelect = document.getElementById('group');
+    const daiSelect = document.getElementById('majorCategory');
+    const chuSelect = document.getElementById('mediumCategory');
+    const selectedGroup = groupSelect.value;
+    const selectedDai = daiSelect.value;
+    
+    // 中分類のオプションをクリア
+    chuSelect.innerHTML = '<option value="">選択してください</option>';
+    
+    // 選択されたグループと大分類に基づいて中分類を更新
+    const uniqueChu = new Set();
+    classifications.forEach(item => {
+        if ((selectedGroup === '' || item.group === selectedGroup) && 
+            (selectedDai === '' || item.dai === selectedDai)) {
+            uniqueChu.add(item.chu);
+        }
+    });
+    
+    // 中分類のオプションを追加
+    Array.from(uniqueChu).forEach(chu => {
+        const option = document.createElement('option');
+        option.value = chu;
+        option.textContent = chu;
+        chuSelect.appendChild(option);
+    });
+    
+    // 中分類が変更されたので、小分類も更新
+    updateShoCategories();
+}
+
+// 中分類が変更されたときに小分類を更新
+function updateShoCategories() {
+    const groupSelect = document.getElementById('group');
+    const daiSelect = document.getElementById('majorCategory');
+    const chuSelect = document.getElementById('mediumCategory');
+    const shoSelect = document.getElementById('smallCategory');
+    const selectedGroup = groupSelect.value;
+    const selectedDai = daiSelect.value;
+    const selectedChu = chuSelect.value;
+    
+    // 小分類のオプションをクリア
+    shoSelect.innerHTML = '<option value="">選択してください</option>';
+    
+    // 選択されたグループ、大分類、中分類に基づいて小分類を更新
+    const uniqueSho = new Set();
+    classifications.forEach(item => {
+        if ((selectedGroup === '' || item.group === selectedGroup) && 
+            (selectedDai === '' || item.dai === selectedDai) && 
+            (selectedChu === '' || item.chu === selectedChu)) {
+            uniqueSho.add(item.sho);
+        }
+    });
+    
+    // 小分類のオプションを追加
+    Array.from(uniqueSho).forEach(sho => {
+        const option = document.createElement('option');
+        option.value = sho;
+        option.textContent = sho;
+        shoSelect.appendChild(option);
+    });
+}
+
+// 編集モードでの値の設定
+document.addEventListener('DOMContentLoaded', function() {
+    if (document.getElementById('group') && document.getElementById('majorCategory') && 
+        document.getElementById('mediumCategory') && document.getElementById('smallCategory')) {
+        updateDaiCategories();
+    }
+});
+
+// Regular/Irregularスイッチの動作
 document.addEventListener('DOMContentLoaded', function() {
     const regularSwitch = document.getElementById('update_regular');
     const cardElement = regularSwitch.closest('.card');
     
     // 初期状態の設定（デフォルトはchecked=trueなのでborder-info）
-    cardElement.classList.add('border-info');
+    if (regularSwitch.checked) {
+        cardElement.classList.add('border-info');
+    } else {
+        cardElement.classList.add('border-danger');
+    }
     
     // スイッチの変更を監視
     regularSwitch.addEventListener('change', function() {
@@ -863,7 +1005,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 
                                 <div class="row mb-3">
                                     <div class="col-md-6">
-                                        {group_html}
+                                        {create_group_html}
                                     </div>
                                     <div class="col-md-6">
                                         {担当者_html}
@@ -880,13 +1022,13 @@ document.addEventListener('DOMContentLoaded', function() {
                                 
                                 <div class="row mb-3">
                                     <div class="col-md-4">
-                                        {大分類_html}
+                                        {create_大分類_html}
                                     </div>
                                     <div class="col-md-4">
-                                        {中分類_html}
+                                        {create_中分類_html}
                                     </div>
                                     <div class="col-md-4">
-                                        {小分類_html}
+                                        {create_小分類_html}
                                     </div>
                                 </div>
                                 
@@ -922,25 +1064,25 @@ document.addEventListener('DOMContentLoaded', function() {
             </div>
         </div>
         
-        {update_regular_js}
+        {create_regular_js}
         
         """.format(
             edit_task_id=edit_task_id, 
-            task_name=status["name"], 
+            task_name=target_task_detail["name"], 
             create_html=create_html, 
             update_html=update_html, 
             status_html=status_html, 
             category_html=category_html, 
-            group_html=group_html, 
+            create_group_html=create_group_html, 
             担当者_html=担当者_html, 
             pinned_html=pinned_html, 
             tags_html=tags_html, 
-            大分類_html=大分類_html, 
-            中分類_html=中分類_html, 
-            小分類_html=小分類_html, 
+            create_大分類_html=create_大分類_html, 
+            create_中分類_html=create_中分類_html, 
+            create_小分類_html=create_小分類_html, 
             regular_html=regular_html, 
-            content=status["content"], 
-            update_regular_js=update_regular_js,
+            content=target_task_content, 
+            create_regular_js=create_regular_js,
             REQUEST_URL=REQUEST_URL
         ))
         footer()
@@ -1023,8 +1165,8 @@ document.addEventListener('DOMContentLoaded', function() {
                             <div class="row mb-3">
                                 <div class="col-md-12">
                                     <small class="text-muted">
-                                        <i class="bi bi-calendar-check"></i> 更新日: {datetime.datetime.strptime(status["update_date"], "%Y-%m-%dT%H:%M:%S").strftime("%Y-%m-%d %H:%M:%S")} &nbsp;|&nbsp; 
-                                        <i class="bi bi-calendar-plus"></i> 作成日: {datetime.datetime.strptime(status["create_date"], "%Y-%m-%dT%H:%M:%S").strftime("%Y-%m-%d %H:%M:%S")}
+                                        <i class="bi bi-calendar-check"></i> 更新日: {datetime.datetime.strptime(status["update_date"], "%Y/%m/%dT%H:%M:%S").strftime("%Y-%m-%d %H:%M:%S")} &nbsp;|&nbsp; 
+                                        <i class="bi bi-calendar-plus"></i> 作成日: {datetime.datetime.strptime(status["create_date"], "%Y/%m/%dT%H:%M:%S").strftime("%Y-%m-%d %H:%M:%S")}
                                     </small>
                                 </div>
                             </div>
@@ -1081,6 +1223,36 @@ document.addEventListener('DOMContentLoaded', function() {
 
 # 作成画面 --------------------------------------------------------------------------------------------
     elif mode=="create":
+        classifications = getClassifications()
+        tasks = []
+        files = os.listdir(task_folder_path)
+        
+        # ここでドロップダウンオプションを生成
+        group_categories = getGroupCategories(classifications)
+        group_options = ""
+        for group in group_categories:
+            group_options += f'<option value="{group}">{group}</option>'
+            
+        dai_options = ""
+        dai_categories = getDaiCategories(classifications)
+        for dai in dai_categories:
+            dai_options += f'<option value="{dai}">{dai}</option>'
+            
+        chu_options = ""
+        chu_categories = getChuCategories(classifications, "")
+        for chu in chu_categories:
+            chu_options += f'<option value="{chu}">{chu}</option>'
+            
+        sho_options = ""
+        sho_categories = getShoCategories(classifications, "", "")
+        for sho in sho_categories:
+            sho_options += f'<option value="{sho}">{sho}</option>'
+        
+        uuid = str(uuid.uuid4())
+        create_create_datetime = str(datetime.datetime.now().strftime('%Y/%m/%dT%H:%M:%S'))
+        create_update_datetime = create_create_datetime
+        create_html = ""
+        # ステータス選択のドロップダウン
         status_html = """
 <div class="form-group mb-3">
     <label for="inputState" class="form-label"><i class="bi bi-list-check"></i> 状態</label>
@@ -1093,15 +1265,15 @@ document.addEventListener('DOMContentLoaded', function() {
         create_html = f"""
 <div class="form-group mb-2">
     <label class="form-label"><i class="bi bi-calendar-plus"></i> 作成時間</label>
-    <p class="form-control-plaintext">{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}</p>
-    <input type="hidden" name="create_create_datetime" value="{datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")}">
+    <p class="form-control-plaintext">{create_create_datetime}</p>
+    <input type="hidden" name="create_create_datetime" value="{create_create_datetime}" />
 </div>
 """
         update_html = f"""
 <div class="form-group mb-2">
     <label class="form-label"><i class="bi bi-calendar-check"></i> 更新時間</label>
-    <p class="form-control-plaintext">{datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}</p>
-    <input type="hidden" name="create_update_datetime" value="{datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")}">
+    <p class="form-control-plaintext">{create_update_datetime}</p>
+    <input type="hidden" name="create_update_datetime" value="{create_update_datetime}" />
 </div>
 """
         category_html = f"""
@@ -1118,9 +1290,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
         tags_html = f"""
 <div class="form-group mb-3">
-    <label for="tags" class="form-label"><i class="bi bi-tags"></i> タグ</label>
-    <input type="text" id="tags" name="create_tags" value="" class="form-control" placeholder="カンマ区切りでタグを入力 (例: 重要, 会議, TODO)"/>
-    <small class="form-text text-muted">複数のタグをカンマ区切りで入力できます</small>
+    <label for="tags" class="form-label"><i class="bi bi-tags"></i> タグ（カンマ区切り）</label>
+    <input type="text" id="tags" name="create_tags" value="" class="form-control" placeholder="例：重要, フォローアップ, 会議"/>
 </div>"""
 
         create_担当者_html = f"""
@@ -1132,25 +1303,37 @@ document.addEventListener('DOMContentLoaded', function() {
         create_group_html = f"""
 <div class="form-group mb-3">
     <label for="group" class="form-label"><i class="bi bi-people"></i> グループ</label>
-    <input type="text" id="group" name="create_groupCategory" value="" class="form-control"/>
+    <select id="group" name="create_groupCategory" class="form-select" onchange="updateDaiCategories()">
+        <option value="">選択してください</option>
+        {group_options}
+    </select>
 </div>"""
 
         create_大分類_html = f"""
 <div class="form-group mb-3">
     <label for="majorCategory" class="form-label"><i class="bi bi-diagram-3"></i> 大分類</label>
-    <input type="text" id="majorCategory" name="create_大分類" value="" class="form-control"/>
+    <select id="majorCategory" name="create_大分類" class="form-select" onchange="updateChuCategories()">
+        <option value="">選択してください</option>
+        {dai_options}
+    </select>
 </div>"""
 
         create_中分類_html = f"""
 <div class="form-group mb-3">
     <label for="mediumCategory" class="form-label"><i class="bi bi-diagram-2"></i> 中分類</label>
-    <input type="text" id="mediumCategory" name="create_中分類" value="" class="form-control"/>
+    <select id="mediumCategory" name="create_中分類" class="form-select" onchange="updateShoCategories()">
+        <option value="">選択してください</option>
+        {chu_options}
+    </select>
 </div>"""
 
         create_小分類_html = f"""
 <div class="form-group mb-3">
-    <label for="minorCategory" class="form-label"><i class="bi bi-diagram-1"></i> 小分類</label>
-    <input type="text" id="minorCategory" name="create_小分類" value="" class="form-control"/>
+    <label for="smallCategory" class="form-label"><i class="bi bi-diagram-1"></i> 小分類</label>
+    <select id="smallCategory" name="create_小分類" class="form-select">
+        <option value="">選択してください</option>
+        {sho_options}
+    </select>
 </div>"""
 
         # Regular/Irregular スイッチのHTML
@@ -1164,6 +1347,111 @@ document.addEventListener('DOMContentLoaded', function() {
         # JavaScriptのための変数準備
         create_regular_js = """
 <script>
+// 分類データ
+const classifications = """ + str(classifications).replace("'", '"') + """;
+
+// グループが変更されたときに大分類を更新
+function updateDaiCategories() {
+    const groupSelect = document.getElementById('group');
+    const daiSelect = document.getElementById('majorCategory');
+    const selectedGroup = groupSelect.value;
+    
+    // 大分類のオプションをクリア
+    daiSelect.innerHTML = '<option value="">選択してください</option>';
+    
+    // 選択されたグループに基づいて大分類を更新
+    const uniqueDai = new Set();
+    classifications.forEach(item => {
+        if (selectedGroup === '' || item.group === selectedGroup) {
+            uniqueDai.add(item.dai);
+        }
+    });
+    
+    // 大分類のオプションを追加
+    Array.from(uniqueDai).forEach(dai => {
+        const option = document.createElement('option');
+        option.value = dai;
+        option.textContent = dai;
+        daiSelect.appendChild(option);
+    });
+    
+    // 大分類が変更されたので、中分類と小分類も更新
+    updateChuCategories();
+}
+
+// 大分類が変更されたときに中分類を更新
+function updateChuCategories() {
+    const groupSelect = document.getElementById('group');
+    const daiSelect = document.getElementById('majorCategory');
+    const chuSelect = document.getElementById('mediumCategory');
+    const selectedGroup = groupSelect.value;
+    const selectedDai = daiSelect.value;
+    
+    // 中分類のオプションをクリア
+    chuSelect.innerHTML = '<option value="">選択してください</option>';
+    
+    // 選択されたグループと大分類に基づいて中分類を更新
+    const uniqueChu = new Set();
+    classifications.forEach(item => {
+        if ((selectedGroup === '' || item.group === selectedGroup) && 
+            (selectedDai === '' || item.dai === selectedDai)) {
+            uniqueChu.add(item.chu);
+        }
+    });
+    
+    // 中分類のオプションを追加
+    Array.from(uniqueChu).forEach(chu => {
+        const option = document.createElement('option');
+        option.value = chu;
+        option.textContent = chu;
+        chuSelect.appendChild(option);
+    });
+    
+    // 中分類が変更されたので、小分類も更新
+    updateShoCategories();
+}
+
+// 中分類が変更されたときに小分類を更新
+function updateShoCategories() {
+    const groupSelect = document.getElementById('group');
+    const daiSelect = document.getElementById('majorCategory');
+    const chuSelect = document.getElementById('mediumCategory');
+    const shoSelect = document.getElementById('smallCategory');
+    const selectedGroup = groupSelect.value;
+    const selectedDai = daiSelect.value;
+    const selectedChu = chuSelect.value;
+    
+    // 小分類のオプションをクリア
+    shoSelect.innerHTML = '<option value="">選択してください</option>';
+    
+    // 選択されたグループ、大分類、中分類に基づいて小分類を更新
+    const uniqueSho = new Set();
+    classifications.forEach(item => {
+        if ((selectedGroup === '' || item.group === selectedGroup) && 
+            (selectedDai === '' || item.dai === selectedDai) && 
+            (selectedChu === '' || item.chu === selectedChu)) {
+            uniqueSho.add(item.sho);
+        }
+    });
+    
+    // 小分類のオプションを追加
+    Array.from(uniqueSho).forEach(sho => {
+        const option = document.createElement('option');
+        option.value = sho;
+        option.textContent = sho;
+        shoSelect.appendChild(option);
+    });
+}
+
+// 編集モードでの値の設定
+document.addEventListener('DOMContentLoaded', function() {
+    if (document.getElementById('group') && document.getElementById('majorCategory') && 
+        document.getElementById('mediumCategory') && document.getElementById('smallCategory')) {
+        updateDaiCategories();
+    }
+});
+
+// Regular/Irregularスイッチの動作
 document.addEventListener('DOMContentLoaded', function() {
     const regularSwitch = document.getElementById('create_regular');
     const cardElement = regularSwitch.closest('.card');
@@ -1278,7 +1566,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         {create_regular_js}
         
-        """.format(uuid=uuid.uuid4(), create_html=create_html, update_html=update_html, status_html=status_html, category_html=category_html, create_group_html=create_group_html, create_担当者_html=create_担当者_html, pinned_html=pinned_html, tags_html=tags_html, create_大分類_html=create_大分類_html, create_中分類_html=create_中分類_html, create_小分類_html=create_小分類_html, regular_html=regular_html, create_regular_js=create_regular_js, REQUEST_URL=REQUEST_URL))
+        """.format(uuid=uuid, create_html=create_html, update_html=update_html, status_html=status_html, category_html=category_html, create_group_html=create_group_html, create_担当者_html=create_担当者_html, pinned_html=pinned_html, tags_html=tags_html, create_大分類_html=create_大分類_html, create_中分類_html=create_中分類_html, create_小分類_html=create_小分類_html, regular_html=regular_html, create_regular_js=create_regular_js, REQUEST_URL=REQUEST_URL))
         
         footer()
         
