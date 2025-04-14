@@ -1223,7 +1223,24 @@ document.addEventListener('DOMContentLoaded', function() {
             config['STATUS']['CATEGORY'] = update_category_input
             
         config['STATUS']['PINNED'] = str(update_pinned)  # 新規作成時はピン止めなし
-        config['STATUS']['TAGS'] = ','.join([tag.strip() for tag in update_tags.split(',') if tag.strip()])  # 新規作成時は空のタグで初期化
+        
+        # タグリストを作成し、グループと分類を追加
+        tags_list = [tag.strip() for tag in update_tags.split(',') if tag.strip()]
+        
+        # グループと分類の値をタグに追加（空でない場合のみ）
+        if update_groupCategory:
+            tags_list.append(update_groupCategory)
+        if update_大分類:
+            tags_list.append(update_大分類)
+        if update_中分類:
+            tags_list.append(update_中分類)
+        if update_小分類:
+            tags_list.append(update_小分類)
+            
+        # 重複を排除
+        unique_tags = list(set(tags_list))
+        config['STATUS']['TAGS'] = ','.join(unique_tags)
+        
         config['STATUS']['GROUPCATEGORY'] = update_groupCategory
         config['STATUS']['担当者'] = update_担当者
         config['STATUS']['大分類'] = update_大分類
@@ -1505,8 +1522,6 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <input type="hidden" name="mode" value="write"/>
                                 <input type="hidden" name="create_task_id" value="{uuid}" />
                                 
-                                {regular_html}
-                                
                                 <div class="form-group mb-3">
                                     <label for="taskName" class="form-label"><i class="bi bi-file-earmark-text"></i> タスク名</label>
                                     <input type="text" id="taskName" name="create_task_name" class="form-control form-control-lg" required/>
@@ -1549,6 +1564,8 @@ document.addEventListener('DOMContentLoaded', function() {
                                         {create_小分類_html}
                                     </div>
                                 </div>
+                                
+                                {regular_html}
                                 
                                 <div class="form-group mb-4">
                                     <label for="content" class="form-label"><i class="bi bi-card-text"></i> 内容</label>
@@ -1619,7 +1636,24 @@ document.addEventListener('DOMContentLoaded', function() {
             config.set("STATUS", 'CATEGORY', create_category_input)
             
         config.set("STATUS", 'PINNED', str(create_pinned))  # 新規作成時はピン止めなし
-        config.set("STATUS", 'TAGS', ','.join([tag.strip() for tag in create_tags.split(',') if tag.strip()]))  # 新規作成時は空のタグで初期化
+        
+        # タグリストを作成し、グループと分類を追加
+        tags_list = [tag.strip() for tag in create_tags.split(',') if tag.strip()]
+        
+        # グループと分類の値をタグに追加（空でない場合のみ）
+        if create_groupCategory:
+            tags_list.append(create_groupCategory)
+        if create_大分類:
+            tags_list.append(create_大分類)
+        if create_中分類:
+            tags_list.append(create_中分類)
+        if create_小分類:
+            tags_list.append(create_小分類)
+            
+        # 重複を排除
+        unique_tags = list(set(tags_list))
+        config.set("STATUS", 'TAGS', ','.join(unique_tags))
+        
         config.set("STATUS", 'GROUPCATEGORY', create_groupCategory)
         config.set("STATUS", '担当者', create_担当者)
         config.set("STATUS", '大分類', create_大分類)
