@@ -509,7 +509,7 @@ if __name__ == '__main__':
                 if sort_by == 'name':
                     secondary_key = task['detail']['name'].lower()
                 elif sort_by in ['create_date', 'update_date']:
-                    secondary_key = datetime.datetime.strptime(task['detail'][sort_by], '%Y/%m/%dT%H:%M:%S')
+                    secondary_key = datetime.datetime.strptime(task['detail'][sort_by], '%Y-%m-%dT%H:%M:%S')
                 elif sort_by == 'category':
                     secondary_key = task['detail']['category'].lower()
                 elif sort_by == 'status':
@@ -658,8 +658,8 @@ if __name__ == '__main__':
                         file=task['id'],
                         task_name=task['detail']['name'],
                         pin_icon_div=pin_icon_div,
-                        incident=datetime.datetime.strptime(task['detail'].get('発生日', task['detail']['create_date']), '%Y/%m/%dT%H:%M:%S').strftime('%Y-%m-%d %H:%M:%S'),
-                        update=datetime.datetime.strptime(task['detail']['update_date'], '%Y/%m/%dT%H:%M:%S').strftime('%Y-%m-%d %H:%M:%S'),
+                        incident=datetime.datetime.strptime(task['detail'].get('発生日', task['detail']['create_date']), '%Y-%m-%dT%H:%M:%S').strftime('%Y-%m-%dT%H:%M:%S'),
+                        update=datetime.datetime.strptime(task['detail']['update_date'], '%Y-%m-%dT%H:%M:%S').strftime('%Y-%m-%dT%H:%M:%S'),
                         content=task['detail']['content'],
                         status=task['detail']['status'],
                         category=task['detail']['category'],
@@ -813,8 +813,8 @@ if __name__ == '__main__':
         update_html = f"""
 <div class="form-group mb-2">
     <label class="form-label"><i class="bi bi-calendar-check"></i> 更新時間</label>
-    <p class="form-control-plaintext">{datetime.datetime.now().strftime("%Y/%m/%dT%H:%M:%S")}</p>
-    <input type="hidden" name="update_update_datetime" value="{datetime.datetime.now().strftime("%Y/%m/%dT%H:%M:%S")}">
+    <p class="form-control-plaintext">{datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")}</p>
+    <input type="hidden" name="update_update_datetime" value="{datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")}">
 </div>
 """
         # 状態選択のHTML修正
@@ -1165,8 +1165,8 @@ document.addEventListener('DOMContentLoaded', function() {
                             <div class="row mb-3">
                                 <div class="col-md-12">
                                     <small class="text-muted">
-                                        <i class="bi bi-calendar-check"></i> 更新日: {datetime.datetime.strptime(status["update_date"], "%Y/%m/%dT%H:%M:%S").strftime("%Y-%m-%d %H:%M:%S")} &nbsp;|&nbsp; 
-                                        <i class="bi bi-calendar-plus"></i> 作成日: {datetime.datetime.strptime(status["create_date"], "%Y/%m/%dT%H:%M:%S").strftime("%Y-%m-%d %H:%M:%S")}
+                                        <i class="bi bi-calendar-check"></i> 更新日: {datetime.datetime.strptime(status["update_date"], "%Y-%m-%dT%H:%M:%S").strftime("%Y-%m-%dT%H:%M:%S")} &nbsp;|&nbsp; 
+                                        <i class="bi bi-calendar-plus"></i> 作成日: {datetime.datetime.strptime(status["create_date"], "%Y-%m-%dT%H:%M:%S").strftime("%Y-%m-%dT%H:%M:%S")}
                                     </small>
                                 </div>
                             </div>
@@ -1249,7 +1249,7 @@ document.addEventListener('DOMContentLoaded', function() {
             sho_options += f'<option value="{sho}">{sho}</option>'
         
         uuid = str(uuid.uuid4())
-        create_create_datetime = str(datetime.datetime.now().strftime('%Y/%m/%dT%H:%M:%S'))
+        create_create_datetime = str(datetime.datetime.now().strftime('%Y-%m-%dT%H:%M:%S'))
         create_update_datetime = create_create_datetime
         create_html = ""
         # ステータス選択のドロップダウン
