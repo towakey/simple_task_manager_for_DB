@@ -1205,7 +1205,23 @@ document.addEventListener('DOMContentLoaded', function() {
 
         config['DATA']['UPDATE_DATA'] = update_update_datetime
         config['STATUS']['STATUS'] = update_state_select
-        config['STATUS']['CATEGORY'] = update_category_input
+        
+        # カテゴリを「大分類_中分類_小分類」の形式で設定
+        category_parts = []
+        if update_大分類:
+            category_parts.append(update_大分類)
+        if update_中分類:
+            category_parts.append(update_中分類)
+        if update_小分類:
+            category_parts.append(update_小分類)
+        
+        if category_parts:
+            # 値が存在する部分だけを「_」で連結
+            config['STATUS']['CATEGORY'] = '_'.join(category_parts)
+        else:
+            # すべて空の場合は入力された値をそのまま使用
+            config['STATUS']['CATEGORY'] = update_category_input
+            
         config['STATUS']['PINNED'] = str(update_pinned)  # 新規作成時はピン止めなし
         config['STATUS']['TAGS'] = ','.join([tag.strip() for tag in update_tags.split(',') if tag.strip()])  # 新規作成時は空のタグで初期化
         config['STATUS']['GROUPCATEGORY'] = update_groupCategory
@@ -1585,7 +1601,23 @@ document.addEventListener('DOMContentLoaded', function() {
         config.add_section("STATUS")
         config.set("STATUS", 'NAME', create_task_name)
         config.set("STATUS", 'STATUS', create_state_select)
-        config.set("STATUS", 'CATEGORY', create_category_input)
+        
+        # カテゴリを「大分類_中分類_小分類」の形式で設定
+        category_parts = []
+        if create_大分類:
+            category_parts.append(create_大分類)
+        if create_中分類:
+            category_parts.append(create_中分類)
+        if create_小分類:
+            category_parts.append(create_小分類)
+        
+        if category_parts:
+            # 値が存在する部分だけを「_」で連結
+            config.set("STATUS", 'CATEGORY', '_'.join(category_parts))
+        else:
+            # すべて空の場合は入力された値をそのまま使用
+            config.set("STATUS", 'CATEGORY', create_category_input)
+            
         config.set("STATUS", 'PINNED', str(create_pinned))  # 新規作成時はピン止めなし
         config.set("STATUS", 'TAGS', ','.join([tag.strip() for tag in create_tags.split(',') if tag.strip()]))  # 新規作成時は空のタグで初期化
         config.set("STATUS", 'GROUPCATEGORY', create_groupCategory)
