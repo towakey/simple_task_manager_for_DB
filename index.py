@@ -988,6 +988,32 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+
+// Regular/Irregularスイッチの背景色変更
+document.addEventListener('DOMContentLoaded', function() {
+    const regularSwitch = document.getElementById('update_regular');
+    const cardElement = regularSwitch.closest('.card');
+    
+    // 初期状態の設定（デフォルトはchecked=trueなのでbg-regular-task）
+    if (regularSwitch.checked) {
+        cardElement.classList.add('bg-regular-task');
+        cardElement.classList.remove('bg-irregular-task');
+    } else {
+        cardElement.classList.remove('bg-regular-task');
+        cardElement.classList.add('bg-irregular-task');
+    }
+    
+    // スイッチの変更を監視
+    regularSwitch.addEventListener('change', function() {
+        if (this.checked) {
+            cardElement.classList.add('bg-regular-task');
+            cardElement.classList.remove('bg-irregular-task');
+        } else {
+            cardElement.classList.remove('bg-regular-task');
+            cardElement.classList.add('bg-irregular-task');
+        }
+    });
+});
 </script>
 """
 
@@ -1209,7 +1235,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             </div>
         </div>
-        """)
+        
+        """.format(
+            view_task_id=view_task_id, 
+            task_name=status["name"], 
+            pin_icon_div=pin_icon_div, 
+            tag_links=tag_links, 
+            card_color=card_color, 
+            regular_badge=regular_badge, 
+            view_bg_class=view_bg_class
+        ))
         footer()
 
 # 更新処理 --------------------------------------------------------------------------------------------
@@ -1515,6 +1550,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // Regular/Irregularスイッチの動作
 document.addEventListener('DOMContentLoaded', function() {
     const regularSwitch = document.getElementById('create_regular');
+    if (!regularSwitch) return;
     const cardElement = regularSwitch.closest('.card');
     
     // 初期状態の設定（デフォルトはchecked=trueなのでborder-info）
@@ -1528,6 +1564,27 @@ document.addEventListener('DOMContentLoaded', function() {
         } else {
             cardElement.classList.remove('border-info');
             cardElement.classList.add('border-danger');
+        }
+    });
+});
+
+// Regular/Irregularスイッチの背景色変更
+document.addEventListener('DOMContentLoaded', function() {
+    const regularSwitch = document.getElementById('create_regular');
+    if (!regularSwitch) return;
+    const cardElement = regularSwitch.closest('.card');
+    
+    // 初期状態の設定（デフォルトはchecked=trueなのでbg-regular-task）
+    cardElement.classList.add('bg-regular-task');
+    
+    // スイッチの変更を監視
+    regularSwitch.addEventListener('change', function() {
+        if (this.checked) {
+            cardElement.classList.add('bg-regular-task');
+            cardElement.classList.remove('bg-irregular-task');
+        } else {
+            cardElement.classList.remove('bg-regular-task');
+            cardElement.classList.add('bg-irregular-task');
         }
     });
 });
