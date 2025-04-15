@@ -2,3 +2,13 @@
 .card {
     border-width: 3px !important;
 }
+
+/* 定型タスク用背景色（薄い青） */
+.bg-regular-task {
+    background-color: #e7f3ff !important;
+}
+
+/* 非定型タスク用背景色（薄い赤） */
+.bg-irregular-task {
+    background-color: #ffe7e7 !important;
+}

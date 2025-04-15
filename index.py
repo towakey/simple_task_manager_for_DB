@@ -595,10 +595,11 @@ if __name__ == '__main__':
                             pin_icon_div = '<span class="fs-4">📌</span>' if task['detail'].get('pinned', False) else ''
                             regular_badge = '<span class="badge bg-info me-1">Regular</span>' if task['detail'].get('regular', 'Regular') == 'Regular' else '<span class="badge bg-warning me-1">Irregular</span>'
                             border_class = " border-info" if task['detail'].get('regular', 'Regular') == 'Regular' else " border-danger"
+                            bg_class = " bg-regular-task" if task['detail'].get('regular', 'Regular') == 'Regular' else " bg-irregular-task"
 
                             temp = """
         <div class="container my-3">
-            <div class="card{card_color}{border_class} shadow-sm">
+            <div class="card{card_color}{border_class}{bg_class} shadow-sm">
                 <div class="card-body">
                     <h5 class="card-title mb-3 fw-bold">
                         <a href="./index.py?mode=view&view_task_id={file}" class="text-decoration-none text-dark">
@@ -667,7 +668,8 @@ if __name__ == '__main__':
                         担当者=task['detail'].get('担当者', ''),
                         tag_links=' '.join([f'<a href="./index.py?tag={tag}" class="badge bg-secondary text-decoration-none me-1">{tag}</a>' for tag in task['detail']['tags']]),
                         regular_badge=regular_badge,
-                        border_class=border_class
+                        border_class=border_class,
+                        bg_class=bg_class
                     )
                             content += temp
         else:
@@ -833,7 +835,7 @@ if __name__ == '__main__':
     <input type="hidden" name="update_update_datetime" value="{datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S")}">
 </div>
 """
-        # 状態選択のHTML修正
+        # ステータス選択のHTML修正
         status_selected_continue = ""
         status_selected_complete = ""
         if target_task_detail['status'] == "完了":
@@ -992,6 +994,9 @@ document.addEventListener('DOMContentLoaded', function() {
         header()
         nav()
 
+        # 背景色クラス
+        edit_bg_class = "bg-regular-task" if target_task_detail.get('regular', 'Regular') == 'Regular' else "bg-irregular-task"
+
         print("""
         <div class="container my-4">
             <div class="row justify-content-center">
@@ -1099,7 +1104,8 @@ document.addEventListener('DOMContentLoaded', function() {
             regular_html=regular_html, 
             content=target_task_content, 
             create_regular_js=create_regular_js,
-            REQUEST_URL=REQUEST_URL
+            REQUEST_URL=REQUEST_URL,
+            edit_bg_class=edit_bg_class
         ))
         footer()
 
@@ -1123,11 +1129,14 @@ document.addEventListener('DOMContentLoaded', function() {
         header()
         nav()
 
+        # 背景色クラス
+        view_bg_class = "bg-regular-task" if status.get('regular', 'Regular') == 'Regular' else "bg-irregular-task"
+
         print(f"""
         <div class="container my-4">
             <div class="row justify-content-center">
                 <div class="col-lg-10">
-                    <div class="card{card_color} shadow">
+                    <div class="card{card_color} {view_bg_class} shadow">
                         <div class="card-body">
                             <h5 class="card-title mb-3 fw-bold">
                                 <a href="./index.py?mode=view&view_task_id={view_task_id}" class="text-decoration-none text-dark">
@@ -1137,9 +1146,9 @@ document.addEventListener('DOMContentLoaded', function() {
                             
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <div class="d-flex align-items-center">
-                                    <span class="badge bg-primary px-3 py-2 fs-6 me-3">
-                                        <i class="bi bi-folder2-open"></i> {status["category"]}
-                                    </span>
+                                    <a href="./index.py?category={status["category"]}" class="text-decoration-none me-3">
+                                        <span class="badge bg-primary">{status["category"]}</span>
+                                    </a>
                                     {regular_badge}
                                 </div>
                                 <div>
@@ -1393,6 +1402,9 @@ document.addEventListener('DOMContentLoaded', function() {
 </div>
 """
 
+        # 背景色クラス（デフォルトは定型）
+        create_bg_class = "bg-regular-task"
+
         # JavaScriptのための変数準備
         create_regular_js = """
 <script>
@@ -1615,7 +1627,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         {create_regular_js}
         
-        """.format(uuid=uuid, create_html=create_html, update_html=update_html, status_html=status_html, category_html=category_html, create_group_html=create_group_html, create_担当者_html=create_担当者_html, pinned_html=pinned_html, tags_html=tags_html, create_大分類_html=create_大分類_html, create_中分類_html=create_中分類_html, create_小分類_html=create_小分類_html, regular_html=regular_html, create_regular_js=create_regular_js, REQUEST_URL=REQUEST_URL))
+        """.format(uuid=uuid, create_html=create_html, update_html=update_html, status_html=status_html, category_html=category_html, create_group_html=create_group_html, create_担当者_html=create_担当者_html, pinned_html=pinned_html, tags_html=tags_html, create_大分類_html=create_大分類_html, create_中分類_html=create_中分類_html, create_小分類_html=create_小分類_html, regular_html=regular_html, create_regular_js=create_regular_js, REQUEST_URL=REQUEST_URL, create_bg_class=create_bg_class))
         
         footer()
         
