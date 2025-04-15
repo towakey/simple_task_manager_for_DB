@@ -742,11 +742,26 @@ if __name__ == '__main__':
     <label class="form-check-label" for="pinned">ピン止めする</label>
 </div>"""
 
+        # 辞書型で渡された場合はタグ名のみを抽出
+        def extract_tag_names(tags):
+            if isinstance(tags, list):
+                names = []
+                for tag in tags:
+                    if isinstance(tag, dict) and 'name' in tag:
+                        names.append(tag['name'])
+                    else:
+                        names.append(str(tag))
+                return ','.join(names)
+            elif isinstance(tags, dict) and 'name' in tags:
+                return tags['name']
+            return str(tags) if tags else ''
+
         # タグ入力欄のHTML
+        tags_value = extract_tag_names(target_task_detail.get('tags', ''))
         tags_html = f"""
 <div class="form-group mb-3">
     <label for="tags" class="form-label"><i class="bi bi-tags"></i> タグ（カンマ区切り）</label>
-    <input type="text" id="tags" name="update_tags" value="{target_task_detail.get('tags', '')}" class="form-control" placeholder="例：重要, フォローアップ, 会議"/>
+    <input type="text" id="tags" name="update_tags" value="{tags_value}" class="form-control" placeholder="例：重要, フォローアップ, 会議"/>
 </div>"""
 
         # 担当者入力欄のHTML
