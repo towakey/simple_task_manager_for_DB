@@ -1268,8 +1268,8 @@ document.addEventListener('DOMContentLoaded', function() {
         
         # カテゴリを「大分類_中分類_小分類」の形式で設定
         category_parts = []
-        if update_大分類:
-            category_parts.append(update_大分類)
+        # if update_大分類:
+        #     category_parts.append(update_大分類)
         if update_中分類:
             category_parts.append(update_中分類)
         if update_小分類:
@@ -1706,8 +1706,8 @@ document.addEventListener('DOMContentLoaded', function() {
         
         # カテゴリを「大分類_中分類_小分類」の形式で設定
         category_parts = []
-        if create_大分類:
-            category_parts.append(create_大分類)
+        # if create_大分類:
+        #     category_parts.append(create_大分類)
         if create_中分類:
             category_parts.append(create_中分類)
         if create_小分類:
