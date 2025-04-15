@@ -1,0 +1,4 @@
+/* カードの枠線を太くする */
+.card {
+    border-width: 3px !important;
+}
