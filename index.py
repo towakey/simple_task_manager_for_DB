@@ -595,7 +595,7 @@ if __name__ == '__main__':
                             pin_icon_div = '<span class="fs-4">📌</span>' if task['detail'].get('pinned', False) else ''
                             regular_badge = '<span class="badge bg-info me-1">Regular</span>' if task['detail'].get('regular', 'Regular') == 'Regular' else '<span class="badge bg-warning me-1">Irregular</span>'
                             border_class = " border-info" if task['detail'].get('regular', 'Regular') == 'Regular' else " border-danger"
-                            bg_class = " bg-regular-task" if task['detail'].get('regular', 'Regular') == 'Regular' else " bg-irregular-task"
+                            bg_class = "" if task['detail']['status'] == "完了" else (" bg-regular-task" if task['detail'].get('regular', 'Regular') == 'Regular' else " bg-irregular-task")
 
                             temp = """
         <div class="container my-3">
