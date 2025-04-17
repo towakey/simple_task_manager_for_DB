@@ -1045,6 +1045,12 @@ document.addEventListener('DOMContentLoaded', function() {
                                     <label for="taskName" class="form-label"><i class="bi bi-file-earmark-text"></i> タスク名</label>
                                     <input type="text" id="taskName" name="update_task_name" value="{task_name}" class="form-control form-control-lg" required/>
                                 </div>
+
+                                <div class="form-group mb-4">
+                                    <label for="content" class="form-label"><i class="bi bi-card-text"></i> 内容</label>
+                                    <textarea id="content" name="update_content" class="form-control" rows="10">{content}</textarea>
+                                    <small class="form-text text-muted">マークダウン記法が使用できます</small>
+                                </div>
                                 
                                 <div class="row mb-3">
                                     <div class="col-md-6">
@@ -1085,12 +1091,6 @@ document.addEventListener('DOMContentLoaded', function() {
                                 </div>
                                 
                                 {regular_html}
-                                
-                                <div class="form-group mb-4">
-                                    <label for="content" class="form-label"><i class="bi bi-card-text"></i> 内容</label>
-                                    <textarea id="content" name="update_content" class="form-control" rows="10">{content}</textarea>
-                                    <small class="form-text text-muted">マークダウン記法が使用できます</small>
-                                </div>
                                 
                                 <div class="row mb-3">
                                     <div class="col-md-6">
