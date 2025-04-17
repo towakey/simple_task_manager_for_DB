@@ -1266,6 +1266,10 @@ document.addEventListener('DOMContentLoaded', function() {
         config['DATA']['UPDATE_DATA'] = update_update_datetime
         config['STATUS']['STATUS'] = update_state_select
         
+        # ステータスが完了なら完了日時を設定
+        if update_state_select == "COMPLETE":
+            config['DATA']['COMPLETE_DATE'] = update_update_datetime
+        
         # カテゴリを「大分類_中分類_小分類」の形式で設定
         category_parts = []
         # if update_大分類:
@@ -1703,6 +1707,10 @@ document.addEventListener('DOMContentLoaded', function() {
         config.add_section("STATUS")
         config.set("STATUS", 'NAME', create_task_name)
         config.set("STATUS", 'STATUS', create_state_select)
+        
+        # ステータスが完了なら完了日時を設定
+        if create_state_select == "COMPLETE":
+            config.set("DATA", 'COMPLETE_DATE', create_create_datetime)
         
         # カテゴリを「大分類_中分類_小分類」の形式で設定
         category_parts = []
