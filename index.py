@@ -961,7 +961,7 @@ function updateShoCategories() {
 document.addEventListener('DOMContentLoaded', function() {
     if (document.getElementById('group') && document.getElementById('majorCategory') && 
         document.getElementById('mediumCategory') && document.getElementById('smallCategory')) {
-        updateDaiCategories();
+        // updateDaiCategories(); // 初期ロード時のカテゴリ更新を無効化
     }
 });
 
@@ -1543,7 +1543,7 @@ function updateShoCategories() {
 document.addEventListener('DOMContentLoaded', function() {
     if (document.getElementById('group') && document.getElementById('majorCategory') && 
         document.getElementById('mediumCategory') && document.getElementById('smallCategory')) {
-        updateDaiCategories();
+        // updateDaiCategories(); // 初期ロード時のカテゴリ更新を無効化
     }
 });
 
