@@ -593,7 +593,7 @@ if __name__ == '__main__':
                 for task in tasks:
                     if q_category == "" or q_category == task['detail']['category']:
                         if q_tag == "" or q_tag in task['detail']['tags']:
-                            pin_icon_div = '<span class="fs-4">📌</span>' if task['detail'].get('pinned', False) else ''
+                            pin_icon_div = '<span class="fs-4">📌</span>' if task['detail']['pinned'] else ''
                             regular_badge = '<span class="badge bg-info me-1">Regular</span>' if task['detail'].get('regular', 'Regular') == 'Regular' else '<span class="badge bg-warning me-1">Irregular</span>'
                             border_class = " border-info" if task['detail'].get('regular', 'Regular') == 'Regular' else " border-danger"
                             bg_class = "" if task['detail']['status'] == "完了" else (" bg-regular-task" if task['detail'].get('regular', 'Regular') == 'Regular' else " bg-irregular-task")
@@ -1032,12 +1032,13 @@ document.addEventListener('DOMContentLoaded', function() {
         <div class="container my-4">
             <div class="row justify-content-center">
                 <div class="col-lg-10">
-                    <div class="card shadow">
-                        <div class="card-header bg-primary text-white">
-                            <h3 class="mb-0"><i class="bi bi-pencil-square"></i> タスク編集</h3>
-                        </div>
-                        <div class="card-body">
-                            <form action="{REQUEST_URL}" method="post">
+                    <form action="{REQUEST_URL}" method="post">
+                        <div class="card shadow">
+                            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                                <h3 class="mb-0"><i class="bi bi-pencil-square"></i> タスク編集</h3>
+                                {regular_html}
+                            </div>
+                            <div class="card-body">
                                 <input type="hidden" name="mode" value="update"/>
                                 <input type="hidden" name="update_task_id" value="{edit_task_id}" />
                                 
@@ -1063,9 +1064,6 @@ document.addEventListener('DOMContentLoaded', function() {
                                 
                                 <div class="row mb-3">
                                     <div class="col-md-6">
-                                        {create_group_html}
-                                    </div>
-                                    <div class="col-md-6">
                                         {担当者_html}
                                     </div>
                                 </div>
@@ -1077,7 +1075,13 @@ document.addEventListener('DOMContentLoaded', function() {
                                 </div>
                                 
                                 {tags_html}
-                                
+
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        {create_group_html}
+                                    </div>
+                                </div>
+
                                 <div class="row mb-3">
                                     <div class="col-md-4">
                                         {create_大分類_html}
@@ -1089,8 +1093,6 @@ document.addEventListener('DOMContentLoaded', function() {
                                         {create_小分類_html}
                                     </div>
                                 </div>
-                                
-                                {regular_html}
                                 
                                 <div class="row mb-3">
                                     <div class="col-md-6">
@@ -1109,9 +1111,9 @@ document.addEventListener('DOMContentLoaded', function() {
                                         <i class="bi bi-save"></i> 保存
                                     </button>
                                 </div>
-                            </form>
+                            </div>
                         </div>
-                    </div>
+                    </form>
                 </div>
             </div>
         </div>
@@ -1608,12 +1610,12 @@ document.addEventListener('DOMContentLoaded', function() {
         <div class="container my-4">
             <div class="row justify-content-center">
                 <div class="col-lg-10">
-                    <div class="card shadow">
-                        <div class="card-header bg-success text-white">
-                            <h3 class="mb-0"><i class="bi bi-plus-circle"></i> 新規タスク作成</h3>
-                        </div>
-                        <div class="card-body">
-                            <form action="{REQUEST_URL}" method="post">
+                    <form action="{REQUEST_URL}" method="post">
+                        <div class="card shadow">
+                            <div class="card-header bg-success text-white">
+                                <h3 class="mb-0"><i class="bi bi-plus-circle"></i> 新規タスク作成</h3>
+                            </div>
+                            <div class="card-body">
                                 <input type="hidden" name="mode" value="write"/>
                                 <input type="hidden" name="create_task_id" value="{uuid}" />
                                 
@@ -1685,9 +1687,9 @@ document.addEventListener('DOMContentLoaded', function() {
                                         <i class="bi bi-plus-circle"></i> 作成
                                     </button>
                                 </div>
-                            </form>
+                            </div>
                         </div>
-                    </div>
+                    </form>
                 </div>
             </div>
         </div>
