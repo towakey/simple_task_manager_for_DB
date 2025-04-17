@@ -603,26 +603,24 @@ if __name__ == '__main__':
             <div class="card{card_color}{border_class}{bg_class} shadow-sm">
                 <div class="card-body">
                     <h5 class="card-title mb-3 fw-bold">
+                        <a href="./index.py?category={category}" class="text-decoration-none me-3">
+                            <span class="badge bg-primary">{category}</span>
+                        </a>
+
                         <a href="./index.py?mode=view&view_task_id={file}" class="text-decoration-none text-dark">
                             {task_name}
                         </a>
                     </h5>
                     
                     <div class="d-flex justify-content-between align-items-center mb-2">
-                        <div class="d-flex align-items-center">
-                            <a href="./index.py?category={category}" class="text-decoration-none me-3">
-                                <span class="badge bg-primary">{category}</span>
-                            </a>
+<!--                        <div class="d-flex align-items-center">
                             {regular_badge}
-                        </div>
+                        </div>-->
                         <div>
                             {pin_icon_div}
                         </div>
                     </div>
                     
-                    <div class="mt-2">
-                        {tag_links}
-                    </div>
                     <div class="card-text border p-3 bg-light my-3">
                         {content}
                     </div>
@@ -634,7 +632,7 @@ if __name__ == '__main__':
                             </span>
                         </div>
                     </div>
-                    
+
                     <div class="row mb-3">
                         <div class="col-md-12">
                             <small class="text-muted">
@@ -645,6 +643,10 @@ if __name__ == '__main__':
                         </div>
                     </div>
                     
+                    <div class="mb-3">
+                        {tag_links}
+                    </div>
+
                     <a href="./index.py?mode=edit&edit_task_id={file}" class="btn btn-primary">
                         <i class="bi bi-pencil"></i> 編集
                     </a>
@@ -1168,6 +1170,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     <div class="card{card_color} {view_bg_class} shadow">
                         <div class="card-body">
                             <h5 class="card-title mb-3 fw-bold">
+                                <a href="./index.py?category={status["category"]}" class="text-decoration-none me-3">
+                                    <span class="badge bg-primary">{status["category"]}</span>
+                                </a>
                                 <a href="./index.py?mode=view&view_task_id={view_task_id}" class="text-decoration-none text-dark">
                                     {status["name"]}
                                 </a>
@@ -1175,24 +1180,17 @@ document.addEventListener('DOMContentLoaded', function() {
                             
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <div class="d-flex align-items-center">
-                                    <a href="./index.py?category={status["category"]}" class="text-decoration-none me-3">
-                                        <span class="badge bg-primary">{status["category"]}</span>
-                                    </a>
-                                    {regular_badge}
+                                    <!--{regular_badge}-->
                                 </div>
                                 <div>
                                     {pin_icon_div}
                                 </div>
                             </div>
                             
-                            <div class="mt-2">
-                                {tag_links}
-                            </div>
-                            
                             <div class="card-text border p-3 bg-light my-3">
                                 {status["content"].replace(chr(10), '<br>')}
                             </div>
-                            
+
                             <!-- Task metadata with improved styling -->
                             <div class="row mb-3">
                                 <div class="col-md-6">
@@ -1204,7 +1202,21 @@ document.addEventListener('DOMContentLoaded', function() {
                                     </span>
                                 </div>
                             </div>
-                            
+
+                            <div class="row mb-3">
+                                <div class="col-md-12">
+                                    <small class="text-muted">
+                                        <i class="bi bi-calendar-check"></i> 更新日: {datetime.datetime.strptime(status["update_date"], "%Y-%m-%dT%H:%M:%S").strftime("%Y-%m-%dT%H:%M:%S")} &nbsp;|&nbsp; 
+                                        <i class="bi bi-calendar-plus"></i> 作成日: {datetime.datetime.strptime(status["create_date"], "%Y-%m-%dT%H:%M:%S").strftime("%Y-%m-%dT%H:%M:%S")} &nbsp;|&nbsp; 
+                                        <i class="bi bi-calendar2-check"></i> 完了日: {datetime.datetime.strptime(status.get("complete_date",""), "%Y-%m-%dT%H:%M:%S").strftime("%Y-%m-%dT%H:%M:%S") if status.get("complete_date") else ""}
+                                    </small>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                {tag_links}
+                            </div>
+
                             <div class="row mb-3">
                                 <div class="col-md-12">
                                     <div class="d-flex flex-wrap">
@@ -1213,16 +1225,6 @@ document.addEventListener('DOMContentLoaded', function() {
                                         {status.get('中分類', '') and f'<span class="badge bg-primary me-2"><i class="bi bi-diagram-2"></i> 中分類: {status.get("中分類", "")}</span>' or ''}
                                         {status.get('小分類', '') and f'<span class="badge bg-primary me-2"><i class="bi bi-diagram-1"></i> 小分類: {status.get("小分類", "")}</span>' or ''}
                                     </div>
-                                </div>
-                            </div>
-                            
-                            <div class="row mb-3">
-                                <div class="col-md-12">
-                                    <small class="text-muted">
-                                        <i class="bi bi-calendar-check"></i> 更新日: {datetime.datetime.strptime(status["update_date"], "%Y-%m-%dT%H:%M:%S").strftime("%Y-%m-%dT%H:%M:%S")} &nbsp;|&nbsp; 
-                                        <i class="bi bi-calendar-plus"></i> 作成日: {datetime.datetime.strptime(status["create_date"], "%Y-%m-%dT%H:%M:%S").strftime("%Y-%m-%dT%H:%M:%S")} &nbsp;|&nbsp; 
-                                        <i class="bi bi-calendar2-check"></i> 完了日: {datetime.datetime.strptime(status.get("complete_date",""), "%Y-%m-%dT%H:%M:%S").strftime("%Y-%m-%dT%H:%M:%S") if status.get("complete_date") else ""}
-                                    </small>
                                 </div>
                             </div>
                             
