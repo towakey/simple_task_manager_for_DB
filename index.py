@@ -85,6 +85,7 @@ def getStatus(url, mode):
 
     result['create_date'] = config['DATA']['CREATE_DATA']
     result['update_date'] = config['DATA']['UPDATE_DATA']
+    result['complete_date'] = config['DATA'].get('COMPLETE_DATE', '')
 
     if config['STATUS']['STATUS'] == 'CONTINUE':
         result['status'] = '継続'
@@ -638,7 +639,8 @@ if __name__ == '__main__':
                         <div class="col-md-12">
                             <small class="text-muted">
                                 <i class="bi bi-calendar-check"></i> 更新日: {update} &nbsp;|&nbsp; 
-                                <i class="bi bi-calendar-plus"></i> 作成日: {incident}
+                                <i class="bi bi-calendar-plus"></i> 作成日: {incident} &nbsp;|&nbsp; 
+                                <i class="bi bi-calendar2-check"></i> 完了日: {complete}
                             </small>
                         </div>
                     </div>
@@ -662,6 +664,7 @@ if __name__ == '__main__':
                         pin_icon_div=pin_icon_div,
                         incident=datetime.datetime.strptime(task['detail'].get('発生日', task['detail']['create_date']), '%Y-%m-%dT%H:%M:%S').strftime('%Y-%m-%dT%H:%M:%S'),
                         update=datetime.datetime.strptime(task['detail']['update_date'], '%Y-%m-%dT%H:%M:%S').strftime('%Y-%m-%dT%H:%M:%S'),
+                        complete=(datetime.datetime.strptime(task['detail']['complete_date'], '%Y-%m-%dT%H:%M:%S').strftime('%Y-%m-%dT%H:%M:%S') if task['detail'].get('complete_date') else ''),
                         content=task['detail']['content'],
                         status=task['detail']['status'],
                         category=task['detail']['category'],
@@ -1217,7 +1220,8 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <div class="col-md-12">
                                     <small class="text-muted">
                                         <i class="bi bi-calendar-check"></i> 更新日: {datetime.datetime.strptime(status["update_date"], "%Y-%m-%dT%H:%M:%S").strftime("%Y-%m-%dT%H:%M:%S")} &nbsp;|&nbsp; 
-                                        <i class="bi bi-calendar-plus"></i> 作成日: {datetime.datetime.strptime(status["create_date"], "%Y-%m-%dT%H:%M:%S").strftime("%Y-%m-%dT%H:%M:%S")}
+                                        <i class="bi bi-calendar-plus"></i> 作成日: {datetime.datetime.strptime(status["create_date"], "%Y-%m-%dT%H:%M:%S").strftime("%Y-%m-%dT%H:%M:%S")} &nbsp;|&nbsp; 
+                                        <i class="bi bi-calendar2-check"></i> 完了日: {datetime.datetime.strptime(status.get("complete_date",""), "%Y-%m-%dT%H:%M:%S").strftime("%Y-%m-%dT%H:%M:%S") if status.get("complete_date") else ""}
                                     </small>
                                 </div>
                             </div>
