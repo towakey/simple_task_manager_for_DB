@@ -11,6 +11,7 @@ import uuid
 import shutil
 import re
 import csv
+import json
 
 app_name = "simple_task_manager"
 
@@ -780,7 +781,9 @@ if __name__ == '__main__':
 </div>"""
 
         # グループ入力欄のHTML - ドロップダウンメニューに変更
-        create_group_html = f"""
+        current_group = target_task_detail.get('groupCategory', '')
+        if not current_group:
+            create_group_html = f"""
 <div class="form-group mb-3">
     <label for="group" class="form-label"><i class="bi bi-people"></i> グループ</label>
     <select id="group" name="update_groupCategory" class="form-select" onchange="updateDaiCategories()">
@@ -788,9 +791,13 @@ if __name__ == '__main__':
         {group_options}
     </select>
 </div>"""
+        else:
+            create_group_html = f'''<input type="hidden" name="update_groupCategory" value="{current_group}">'''
 
-        # 大分類、中分類、小分類の入力欄のHTML - ドロップダウンメニューに変更
-        create_大分類_html = f"""
+        # 大分類入力欄のHTML - ドロップダウンメニューに変更
+        current_dai = target_task_detail.get('大分類', '')
+        if not current_dai:
+            create_大分類_html = f"""
 <div class="form-group mb-3">
     <label for="majorCategory" class="form-label"><i class="bi bi-diagram-3"></i> 大分類</label>
     <select id="majorCategory" name="update_大分類" class="form-select" onchange="updateChuCategories()">
@@ -798,8 +805,13 @@ if __name__ == '__main__':
         {dai_options}
     </select>
 </div>"""
+        else:
+            create_大分類_html = f'''<input type="hidden" name="update_大分類" value="{current_dai}">'''
 
-        create_中分類_html = f"""
+        # 中分類入力欄のHTML - ドロップダウンメニューに変更
+        current_chu = target_task_detail.get('中分類', '')
+        if not current_chu:
+            create_中分類_html = f"""
 <div class="form-group mb-3">
     <label for="mediumCategory" class="form-label"><i class="bi bi-diagram-2"></i> 中分類</label>
     <select id="mediumCategory" name="update_中分類" class="form-select" onchange="updateShoCategories()">
@@ -807,8 +819,13 @@ if __name__ == '__main__':
         {chu_options}
     </select>
 </div>"""
+        else:
+            create_中分類_html = f'''<input type="hidden" name="update_中分類" value="{current_chu}">'''
 
-        create_小分類_html = f"""
+        # 小分類入力欄のHTML - ドロップダウンメニューに変更
+        current_sho = target_task_detail.get('小分類', '')
+        if not current_sho:
+            create_小分類_html = f"""
 <div class="form-group mb-3">
     <label for="smallCategory" class="form-label"><i class="bi bi-diagram-1"></i> 小分類</label>
     <select id="smallCategory" name="update_小分類" class="form-select">
@@ -816,6 +833,8 @@ if __name__ == '__main__':
         {sho_options}
     </select>
 </div>"""
+        else:
+            create_小分類_html = f'''<input type="hidden" name="update_小分類" value="{current_sho}">'''
 
         # Regular/Irregular スイッチのHTML
         is_regular = target_task_detail.get('regular', 'Regular') == 'Regular'
@@ -864,161 +883,148 @@ if __name__ == '__main__':
 </div>"""
 
         # JavaScriptのための変数準備
-        create_regular_js = """
+        create_regular_js = f"""
 <script>
 // 分類データ
-const classifications = """ + str(classifications).replace("'", '"') + """;
+const classifications = {json.dumps(classifications)};
 
 // グループが変更されたときに大分類を更新
-function updateDaiCategories() {
+function updateDaiCategories() {{
     const groupSelect = document.getElementById('group');
     const daiSelect = document.getElementById('majorCategory');
-    const selectedGroup = groupSelect.value;
     
-    // 大分類のオプションをクリア
+    if (!groupSelect || (groupSelect.tagName !== 'SELECT') || !daiSelect || (daiSelect.tagName !== 'SELECT')) {{
+        updateChuCategories();
+        return;
+    }}
+
+    const selectedGroup = groupSelect.value;
     daiSelect.innerHTML = '<option value="">選択してください</option>';
     
-    // 選択されたグループに基づいて大分類を更新
     const uniqueDai = new Set();
-    classifications.forEach(item => {
-        if (selectedGroup === '' || item.group === selectedGroup) {
-            uniqueDai.add(item.dai);
-        }
-    });
+    if (classifications && Array.isArray(classifications)) {{
+        classifications.forEach(item => {{
+            if (selectedGroup === '' || item.group === selectedGroup) {{
+                if (item.dai) uniqueDai.add(item.dai);
+            }}
+        }});
+    }}
     
-    // 大分類のオプションを追加
-    Array.from(uniqueDai).forEach(dai => {
+    Array.from(uniqueDai).sort().forEach(dai => {{
         const option = document.createElement('option');
         option.value = dai;
         option.textContent = dai;
         daiSelect.appendChild(option);
-    });
-    
-    // 大分類が変更されたので、中分類と小分類も更新
+    }});
     updateChuCategories();
-}
+}}
 
 // 大分類が変更されたときに中分類を更新
-function updateChuCategories() {
+function updateChuCategories() {{
     const groupSelect = document.getElementById('group');
     const daiSelect = document.getElementById('majorCategory');
     const chuSelect = document.getElementById('mediumCategory');
-    const selectedGroup = groupSelect.value;
-    const selectedDai = daiSelect.value;
+
+    if (!daiSelect || (daiSelect.tagName !== 'SELECT' && daiSelect.value === '') || !chuSelect || (chuSelect.tagName !== 'SELECT')) {{
+         updateShoCategories();
+        return;
+    }}
     
-    // 中分類のオプションをクリア
+    const selectedGroup = groupSelect && groupSelect.tagName === 'SELECT' ? groupSelect.value : (document.getElementsByName('update_groupCategory')[0] ? document.getElementsByName('update_groupCategory')[0].value : '');
+    const selectedDai = daiSelect.tagName === 'SELECT' ? daiSelect.value : (document.getElementsByName('update_大分類')[0] ? document.getElementsByName('update_大分類')[0].value : '');
+
     chuSelect.innerHTML = '<option value="">選択してください</option>';
     
-    // 選択されたグループと大分類に基づいて中分類を更新
     const uniqueChu = new Set();
-    classifications.forEach(item => {
-        if ((selectedGroup === '' || item.group === selectedGroup) && 
-            (selectedDai === '' || item.dai === selectedDai)) {
-            uniqueChu.add(item.chu);
-        }
-    });
+    if (classifications && Array.isArray(classifications)) {{
+        classifications.forEach(item => {{
+            if ((selectedGroup === '' || item.group === selectedGroup) && 
+                (selectedDai === '' || item.dai === selectedDai)) {{
+                if (item.chu) uniqueChu.add(item.chu);
+            }}
+        }});
+    }}
     
-    // 中分類のオプションを追加
-    Array.from(uniqueChu).forEach(chu => {
+    Array.from(uniqueChu).sort().forEach(chu => {{
         const option = document.createElement('option');
         option.value = chu;
         option.textContent = chu;
         chuSelect.appendChild(option);
-    });
-    
-    // 中分類が変更されたので、小分類も更新
+    }});
     updateShoCategories();
-}
+}}
 
 // 中分類が変更されたときに小分類を更新
-function updateShoCategories() {
+function updateShoCategories() {{
     const groupSelect = document.getElementById('group');
     const daiSelect = document.getElementById('majorCategory');
     const chuSelect = document.getElementById('mediumCategory');
     const shoSelect = document.getElementById('smallCategory');
-    const selectedGroup = groupSelect.value;
-    const selectedDai = daiSelect.value;
-    const selectedChu = chuSelect.value;
+
+    if (!chuSelect || (chuSelect.tagName !== 'SELECT' && chuSelect.value === '') || !shoSelect || (shoSelect.tagName !== 'SELECT')) {{
+        return;
+    }}
+
+    const selectedGroup = groupSelect && groupSelect.tagName === 'SELECT' ? groupSelect.value : (document.getElementsByName('update_groupCategory')[0] ? document.getElementsByName('update_groupCategory')[0].value : '');
+    const selectedDai = daiSelect && daiSelect.tagName === 'SELECT' ? daiSelect.value : (document.getElementsByName('update_大分類')[0] ? document.getElementsByName('update_大分類')[0].value : '');
+    const selectedChu = chuSelect.tagName === 'SELECT' ? chuSelect.value : (document.getElementsByName('update_中分類')[0] ? document.getElementsByName('update_中分類')[0].value : '');
     
-    // 小分類のオプションをクリア
     shoSelect.innerHTML = '<option value="">選択してください</option>';
     
-    // 選択されたグループ、大分類、中分類に基づいて小分類を更新
     const uniqueSho = new Set();
-    classifications.forEach(item => {
-        if ((selectedGroup === '' || item.group === selectedGroup) && 
-            (selectedDai === '' || item.dai === selectedDai) && 
-            (selectedChu === '' || item.chu === selectedChu)) {
-            uniqueSho.add(item.sho);
-        }
-    });
+    if (classifications && Array.isArray(classifications)) {{
+        classifications.forEach(item => {{
+            if ((selectedGroup === '' || item.group === selectedGroup) && 
+                (selectedDai === '' || item.dai === selectedDai) && 
+                (selectedChu === '' || item.chu === selectedChu)) {{
+                if (item.sho) uniqueSho.add(item.sho);
+            }}
+        }});
+    }}
     
-    // 小分類のオプションを追加
-    Array.from(uniqueSho).forEach(sho => {
+    Array.from(uniqueSho).sort().forEach(sho => {{
         const option = document.createElement('option');
         option.value = sho;
         option.textContent = sho;
         shoSelect.appendChild(option);
-    });
-}
+    }});
+}}
 
-// 編集モードでの値の設定
-document.addEventListener('DOMContentLoaded', function() {
-    if (document.getElementById('group') && document.getElementById('majorCategory') && 
-        document.getElementById('mediumCategory') && document.getElementById('smallCategory')) {
-        // updateDaiCategories(); // 初期ロード時のカテゴリ更新を無効化
-    }
-});
+document.addEventListener('DOMContentLoaded', function() {{
+    if (document.getElementById('group') && document.getElementById('group').tagName === 'SELECT') {{
+        if (document.getElementById('group').value) {{
+            updateDaiCategories();
+        }}
+    }} else if (document.getElementById('majorCategory') && document.getElementById('majorCategory').tagName === 'SELECT') {{
+         if (document.getElementById('majorCategory').value) {{
+            updateChuCategories();
+        }}
+    }} else if (document.getElementById('mediumCategory') && document.getElementById('mediumCategory').tagName === 'SELECT') {{
+         if (document.getElementById('mediumCategory').value) {{
+            updateShoCategories();
+        }}
+    }}
 
-// Regular/Irregularスイッチの動作
-document.addEventListener('DOMContentLoaded', function() {
     const regularSwitch = document.getElementById('update_regular');
-    const cardElement = regularSwitch.closest('.card');
-    
-    // 初期状態の設定（デフォルトはchecked=trueなのでborder-info）
-    if (regularSwitch.checked) {
-        cardElement.classList.add('border-info');
-    } else {
-        cardElement.classList.add('border-danger');
-    }
-    
-    // スイッチの変更を監視
-    regularSwitch.addEventListener('change', function() {
-        if (this.checked) {
-            cardElement.classList.remove('border-danger');
-            cardElement.classList.add('border-info');
-        } else {
-            cardElement.classList.remove('border-info');
-            cardElement.classList.add('border-danger');
-        }
-    });
-});
-
-// Regular/Irregularスイッチの背景色変更
-document.addEventListener('DOMContentLoaded', function() {
-    const regularSwitch = document.getElementById('update_regular');
-    const cardElement = regularSwitch.closest('.card');
-    
-    // 初期状態の設定（デフォルトはchecked=trueなのでbg-regular-task）
-    if (regularSwitch.checked) {
-        cardElement.classList.add('bg-regular-task');
-        cardElement.classList.remove('bg-irregular-task');
-    } else {
-        cardElement.classList.remove('bg-regular-task');
-        cardElement.classList.add('bg-irregular-task');
-    }
-    
-    // スイッチの変更を監視
-    regularSwitch.addEventListener('change', function() {
-        if (this.checked) {
-            cardElement.classList.add('bg-regular-task');
-            cardElement.classList.remove('bg-irregular-task');
-        } else {
-            cardElement.classList.remove('bg-regular-task');
-            cardElement.classList.add('bg-irregular-task');
-        }
-    });
-});
+    if (regularSwitch) {{
+        const cardElement = regularSwitch.closest('.card'); 
+        
+        function applyStyling() {{
+            if (cardElement) {{
+                if (regularSwitch.checked) {{
+                    cardElement.classList.remove('bg-irregular-task');
+                    cardElement.classList.add('bg-regular-task');
+                }} else {{
+                    cardElement.classList.remove('bg-regular-task');
+                    cardElement.classList.add('bg-irregular-task');
+                }}
+            }}
+        }}
+        
+        applyStyling();
+        regularSwitch.addEventListener('change', applyStyling);
+    }}
+}});
 </script>
 """
 
@@ -1553,17 +1559,23 @@ function updateShoCategories() {
 
 // 編集モードでの値の設定
 document.addEventListener('DOMContentLoaded', function() {
-    if (document.getElementById('group') && document.getElementById('majorCategory') && 
-        document.getElementById('mediumCategory') && document.getElementById('smallCategory')) {
-        // updateDaiCategories(); // 初期ロード時のカテゴリ更新を無効化
-    }
-});
+    if (document.getElementById('group') && document.getElementById('group').tagName === 'SELECT') {{
+        if (document.getElementById('group').value) {{
+            updateDaiCategories();
+        }}
+    }} else if (document.getElementById('majorCategory') && document.getElementById('majorCategory').tagName === 'SELECT') {{
+         if (document.getElementById('majorCategory').value) {{
+            updateChuCategories();
+        }}
+    }} else if (document.getElementById('mediumCategory') && document.getElementById('mediumCategory').tagName === 'SELECT') {{
+         if (document.getElementById('mediumCategory').value) {{
+            updateShoCategories();
+        }}
+    }}
 
-// Regular/Irregularスイッチの動作
-document.addEventListener('DOMContentLoaded', function() {
     const regularSwitch = document.getElementById('create_regular');
     if (!regularSwitch) return;
-    const cardElement = regularSwitch.closest('.card');
+    const cardElement = regularSwitch.closest('.card'); 
     
     // 初期状態の設定（デフォルトはchecked=trueなのでborder-info）
     cardElement.classList.add('border-info');
@@ -1584,7 +1596,7 @@ document.addEventListener('DOMContentLoaded', function() {
 document.addEventListener('DOMContentLoaded', function() {
     const regularSwitch = document.getElementById('create_regular');
     if (!regularSwitch) return;
-    const cardElement = regularSwitch.closest('.card');
+    const cardElement = regularSwitch.closest('.card'); 
     
     // 初期状態の設定（デフォルトはchecked=trueなのでbg-regular-task）
     cardElement.classList.add('bg-regular-task');
