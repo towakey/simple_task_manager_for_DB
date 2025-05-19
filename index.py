@@ -12,8 +12,9 @@ import shutil
 import re
 import csv
 import json
+import db
 
-app_name = "simple_task_manager"
+app_name = "simple_task_manager_for_DB"
 
 str_code = "utf-8"
 
@@ -78,103 +79,64 @@ create_中分類 = form.getfirst('create_中分類', '')
 create_小分類 = form.getfirst('create_小分類', '')
 create_regular = form.getfirst('create_regular', 'off') == 'on'  # スイッチの値を取得 (on/off)
 
+# 既存ヘルパを置き換え -------------------------------------------------------------
+def _row_to_detail(row):
+    """db.fetch_* で取得した行(dict)を既存UIが期待するキーへ変換"""
+    detail = row.copy()
+    # ステータスを日本語表記へ変換し card_color を追加
+    if row.get("status") == "COMPLETE":
+        detail["status"] = "完了"
+        detail["card_color"] = " bg-secondary"
+    else:
+        detail["status"] = "継続"
+        detail["card_color"] = ""
+    # bool pinned 既に bool
+    # group_category → groupCategory
+    if "group_category" in detail:
+        detail["groupCategory"] = detail.pop("group_category")
+    return detail
+
 # タスク情報の読み込み
-def getStatus(url, mode):
+def getStatus(task_id, mode):
     result = {}
-    config = configparser.ConfigParser()
-    config.read(url + '/config.ini', encoding=str_code)
-
-    result['create_date'] = config['DATA']['CREATE_DATA']
-    result['update_date'] = config['DATA']['UPDATE_DATA']
-    result['complete_date'] = config['DATA'].get('COMPLETE_DATE', '')
-
-    if config['STATUS']['STATUS'] == 'CONTINUE':
-        result['status'] = '継続'
+    row = db.fetch_one(task_id)
+    if row:
+        result = _row_to_detail(row)
+    else:
+        result['name'] = ""
+        result['create_date'] = ""
+        result['update_date'] = ""
+        result['complete_date'] = ""
+        result['status'] = ""
         result['card_color'] = ""
-    elif config['STATUS']['STATUS'] == 'COMPLETE':
-        result['status'] = '完了'
-        result['card_color'] = " bg-secondary"
-    else:
-        result['status'] = '状態不明'
-
-    result['name'] = config['STATUS']['NAME']
-
-    # ピン止めの状態を安全に取得
-    try:
-        result['pinned'] = config['STATUS'].getboolean('PINNED', fallback=False)
-    except (configparser.Error, ValueError):
         result['pinned'] = False
-
-    # タグを安全に取得
-    try:
-        tags_str = config['STATUS'].get('TAGS', fallback='')
-        result['tags'] = [tag.strip() for tag in tags_str.split(',') if tag.strip()]
-    except (configparser.Error, ValueError):
-        result['tags'] = []
-
-    if "CATEGORY" in map(lambda x:x[0].upper(), config.items("STATUS")):
-        result['category'] = config['STATUS']['CATEGORY']
-    else:
+        result['content'] = ""
         result['category'] = ""
-
-    if "GROUPCATEGORY" in map(lambda x:x[0].upper(), config.items("STATUS")):
-        result['groupCategory'] = config['STATUS']['GROUPCATEGORY']
-    else:
+        result['tags'] = []
         result['groupCategory'] = ""
-
-    if "担当者" in map(lambda x:x[0].upper(), config.items("STATUS")):
-        result['担当者'] = config['STATUS']['担当者']
-    else:
         result['担当者'] = ""
-
-    if "大分類" in map(lambda x:x[0].upper(), config.items("STATUS")):
-        result['大分類'] = config['STATUS']['大分類']
-    else:
         result['大分類'] = ""
-
-    if "中分類" in map(lambda x:x[0].upper(), config.items("STATUS")):
-        result['中分類'] = config['STATUS']['中分類']
-    else:
         result['中分類'] = ""
-
-    if "小分類" in map(lambda x:x[0].upper(), config.items("STATUS")):
-        result['小分類'] = config['STATUS']['小分類']
-    else:
         result['小分類'] = ""
-
-    if "REGULAR" in map(lambda x:x[0].upper(), config.items("STATUS")):
-        result['regular'] = config['STATUS']['REGULAR']
-    else:
-        result['regular'] = "Regular"
-
-    f = open(url + '/contents.txt', 'r', encoding=str_code)
-    content = f.read()
-    f.close()
-
+        result['regular'] = ""
     if mode == "index":
         # マークダウンリンクをHTMLリンクに変換
-        content = re.sub(r'\[([^\]]+)\]\(([^\)]+)\)', r'<a href="\2">\1</a>', content)
-        result['content'] = content.replace('\n', '<br>')
+        result['content'] = re.sub(r'\[([^\]]+)\]\(([^\)]+)\)', r'<a href="\2">\1</a>', result['content'])
+        result['content'] = result['content'].replace('\n', '<br>')
     elif mode == "edit":
-        result['content'] = content
+        result['content'] = result['content']
     elif mode == "view":
-        result['content'] = content
-
+        result['content'] = result['content']
     return result
 
 # カテゴリー一覧を作成
 def getCategoryList():
-    result = []
-    files_file = [f for f in os.listdir(task_folder_path) if os.path.isdir(os.path.join(task_folder_path, f))]
-    if len(files_file) > 0:
-        for file in files_file:
-            config = configparser.ConfigParser()
-            config.read(task_folder_path+'/'+file + '/config.ini', encoding=str_code)
-            if "CATEGORY" in map(lambda x:x[0].upper(), config.items("STATUS")):
-                if config['STATUS']['CATEGORY'] != "":
-                    if config['STATUS']['CATEGORY'] not in result:
-                        result.append(config['STATUS']['CATEGORY'])
-    return result
+    cats = set()
+    for row in db.fetch_all():
+        cat = row.get("category", "")
+        if cat:
+            cats.add(cat)
+    return list(cats)
 
 # 分類データの読み込み
 def getClassifications():
@@ -410,6 +372,57 @@ def footer():
 </html>
 """)
 
+# --- Legacy task folder import ------------------------------------------------
+
+def import_legacy_tasks():
+    """Scan ./task directory and import entries that do not yet exist in DB."""
+    imported = 0
+    skipped = 0
+    if not os.path.isdir(task_folder_path):
+        return (0,0)
+    for task_id in os.listdir(task_folder_path):
+        dir_path = os.path.join(task_folder_path, task_id)
+        if not os.path.isdir(dir_path):
+            continue
+        # skip if already exists
+        if db.fetch_one(task_id):
+            skipped += 1
+            continue
+        cfg_path = os.path.join(dir_path, 'config.ini')
+        content_path = os.path.join(dir_path, 'contents.txt')
+        if not os.path.isfile(cfg_path):
+            skipped += 1
+            continue
+        config = configparser.ConfigParser()
+        config.read(cfg_path, encoding=str_code)
+        try:
+            data_sec = config['DATA']
+            stat_sec = config['STATUS']
+        except KeyError:
+            skipped += 1
+            continue
+        task_dict = {
+            "id": task_id,
+            "name": stat_sec.get('NAME', ''),
+            "status": stat_sec.get('STATUS', 'CONTINUE'),
+            "create_date": data_sec.get('CREATE_DATA', ''),
+            "update_date": data_sec.get('UPDATE_DATA', ''),
+            "complete_date": data_sec.get('COMPLETE_DATE', None),
+            "pinned": stat_sec.getboolean('PINNED', fallback=False),
+            "category": stat_sec.get('CATEGORY', ''),
+            "group_category": stat_sec.get('GROUPCATEGORY', ''),
+            "担当者": stat_sec.get('担当者', ''),
+            "大分類": stat_sec.get('大分類', ''),
+            "中分類": stat_sec.get('中分類', ''),
+            "小分類": stat_sec.get('小分類', ''),
+            "regular": stat_sec.get('REGULAR', 'Regular'),
+            "tags": [t.strip() for t in stat_sec.get('TAGS', '').split(',') if t.strip()],
+            "content": open(content_path, 'r', encoding=str_code).read() if os.path.isfile(content_path) else '',
+        }
+        db.insert(task_dict)
+        imported += 1
+    return (imported, skipped)
+
 if __name__ == '__main__':
     print('Content-type: text/html; charset=UTF-8\r\n')
     # 一覧画面
@@ -486,120 +499,109 @@ if __name__ == '__main__':
                 <!-- メインコンテンツ部分 -->
                 <div class="col-md-9 col-lg-10">
         """)
-
-        files_file = [f for f in os.listdir(task_folder_path) if os.path.isdir(os.path.join(task_folder_path, f))]
-        files = []
+        
+        # DB から全タスクを取得
         tasks = []
+        for row in db.fetch_all():
+            tasks.append({"id": row["id"], "detail": _row_to_detail(row)})
 
-        if len(files_file) > 0:
-            # ファイル一覧取得
-            for file in files_file:
-                files.append(file)
-
-            # タスク情報格納
-            for task_id in files:
-                task = {}
-                task['id'] = task_id
-                task['detail'] = getStatus(task_folder_path + '/' + task_id+'/', "index")
-                tasks.append(task)
-
-            # ソート用の関数
-            def get_sort_key(task):
-                # 最初にピン止めされたタスクを上に
-                pinned_priority = 0 if task['detail']['pinned'] else 1
-                
-                # 二次ソートのキーを取得
-                if sort_by == 'name':
-                    secondary_key = task['detail']['name'].lower()
-                elif sort_by in ['create_date', 'update_date']:
-                    secondary_key = datetime.datetime.strptime(task['detail'][sort_by], '%Y-%m-%dT%H:%M:%S')
-                elif sort_by == 'category':
-                    secondary_key = task['detail']['category'].lower()
-                elif sort_by == 'status':
-                    secondary_key = task['detail']['status']
-                
-                # 降順の場合は比較を反転
-                if sort_order == 'desc' and sort_by in ['create_date', 'update_date']:
-                    secondary_key = datetime.datetime.max - secondary_key
-                elif sort_order == 'desc':
-                    secondary_key = '~' + str(secondary_key)
-                
-                return (pinned_priority, secondary_key)
+        # ソート用の関数
+        def get_sort_key(task):
+            # 最初にピン止めされたタスクを上に
+            pinned_priority = 0 if task['detail']['pinned'] else 1
             
-            # ソート実行
-            tasks.sort(key=get_sort_key)
-
-            # カテゴリフィルタリング
-            if q_category != "":
-                filtered_tasks = []
-                for task in tasks:
-                    if 'category' in task['detail'] and task['detail']['category'] == q_category:
-                        filtered_tasks.append(task)
-                tasks = filtered_tasks
+            # 二次ソートのキーを取得
+            if sort_by == 'name':
+                secondary_key = task['detail']['name'].lower()
+            elif sort_by in ['create_date', 'update_date']:
+                secondary_key = datetime.datetime.strptime(task['detail'][sort_by], '%Y-%m-%dT%H:%M:%S')
+            elif sort_by == 'category':
+                secondary_key = task['detail']['category'].lower()
+            elif sort_by == 'status':
+                secondary_key = task['detail']['status']
             
-            # タグフィルタリング
-            if q_tag != "":
-                filtered_tasks = []
-                for task in tasks:
-                    if 'tags' in task['detail'] and q_tag in task['detail']['tags']:
-                        filtered_tasks.append(task)
-                tasks = filtered_tasks
-                
-            # グループによるフィルタリング
-            if q_groupCategory != "":
-                filtered_tasks = []
-                for task in tasks:
-                    if 'groupCategory' in task['detail'] and task['detail']['groupCategory'] == q_groupCategory:
-                        filtered_tasks.append(task)
-                tasks = filtered_tasks
-                
-            # 大分類によるフィルタリング
-            if q_daiCategory != "":
-                filtered_tasks = []
-                for task in tasks:
-                    if '大分類' in task['detail'] and task['detail']['大分類'] == q_daiCategory:
-                        filtered_tasks.append(task)
-                tasks = filtered_tasks
-                
-            # 中分類によるフィルタリング
-            if q_chuCategory != "":
-                filtered_tasks = []
-                for task in tasks:
-                    if '中分類' in task['detail'] and task['detail']['中分類'] == q_chuCategory:
-                        filtered_tasks.append(task)
-                tasks = filtered_tasks
-                
-            # 小分類によるフィルタリング
-            if q_shoCategory != "":
-                filtered_tasks = []
-                for task in tasks:
-                    if '小分類' in task['detail'] and task['detail']['小分類'] == q_shoCategory:
-                        filtered_tasks.append(task)
-                tasks = filtered_tasks
-
-            # ピン止めされたタスクを先頭に表示
-            pinned_tasks = []
-            unpinned_tasks = []
+            # 降順の場合は比較を反転
+            if sort_order == 'desc' and sort_by in ['create_date', 'update_date']:
+                secondary_key = datetime.datetime.max - secondary_key
+            elif sort_order == 'desc':
+                secondary_key = '~' + str(secondary_key)
             
+            return (pinned_priority, secondary_key)
+        
+        # ソート実行
+        tasks.sort(key=get_sort_key)
+
+        # カテゴリフィルタリング
+        if q_category != "":
+            filtered_tasks = []
             for task in tasks:
-                if task['detail']['pinned']:
-                    pinned_tasks.append(task)
-                else:
-                    unpinned_tasks.append(task)
-                    
-            tasks = pinned_tasks + unpinned_tasks
+                if 'category' in task['detail'] and task['detail']['category'] == q_category:
+                    filtered_tasks.append(task)
+            tasks = filtered_tasks
+        
+        # タグフィルタリング
+        if q_tag != "":
+            filtered_tasks = []
+            for task in tasks:
+                if 'tags' in task['detail'] and q_tag in task['detail']['tags']:
+                    filtered_tasks.append(task)
+            tasks = filtered_tasks
+            
+        # グループによるフィルタリング
+        if q_groupCategory != "":
+            filtered_tasks = []
+            for task in tasks:
+                if 'groupCategory' in task['detail'] and task['detail']['groupCategory'] == q_groupCategory:
+                    filtered_tasks.append(task)
+            tasks = filtered_tasks
+            
+        # 大分類によるフィルタリング
+        if q_daiCategory != "":
+            filtered_tasks = []
+            for task in tasks:
+                if '大分類' in task['detail'] and task['detail']['大分類'] == q_daiCategory:
+                    filtered_tasks.append(task)
+            tasks = filtered_tasks
+            
+        # 中分類によるフィルタリング
+        if q_chuCategory != "":
+            filtered_tasks = []
+            for task in tasks:
+                if '中分類' in task['detail'] and task['detail']['中分類'] == q_chuCategory:
+                    filtered_tasks.append(task)
+            tasks = filtered_tasks
+            
+        # 小分類によるフィルタリング
+        if q_shoCategory != "":
+            filtered_tasks = []
+            for task in tasks:
+                if '小分類' in task['detail'] and task['detail']['小分類'] == q_shoCategory:
+                    filtered_tasks.append(task)
+            tasks = filtered_tasks
 
-            content = ""
-            if len(tasks) > 0:
-                for task in tasks:
-                    if q_category == "" or q_category == task['detail']['category']:
-                        if q_tag == "" or q_tag in task['detail']['tags']:
-                            pin_icon_div = '<span class="fs-4">📌</span>' if task['detail']['pinned'] else ''
-                            regular_badge = '<span class="badge bg-info me-1">Regular</span>' if task['detail'].get('regular', 'Regular') == 'Regular' else '<span class="badge bg-warning me-1">Irregular</span>'
-                            border_class = " border-info" if task['detail'].get('regular', 'Regular') == 'Regular' else " border-danger"
-                            bg_class = "" if task['detail']['status'] == "完了" else (" bg-regular-task" if task['detail'].get('regular', 'Regular') == 'Regular' else " bg-irregular-task")
+        # ピン止めされたタスクを先頭に表示
+        pinned_tasks = []
+        unpinned_tasks = []
+        
+        for task in tasks:
+            if task['detail']['pinned']:
+                pinned_tasks.append(task)
+            else:
+                unpinned_tasks.append(task)
+                
+        tasks = pinned_tasks + unpinned_tasks
 
-                            temp = """
+        content = ""
+        if len(tasks) > 0:
+            for task in tasks:
+                if q_category == "" or q_category == task['detail']['category']:
+                    if q_tag == "" or q_tag in task['detail']['tags']:
+                        pin_icon_div = '<span class="fs-4">📌</span>' if task['detail']['pinned'] else ''
+                        regular_badge = '<span class="badge bg-info me-1">Regular</span>' if task['detail'].get('regular', 'Regular') == 'Regular' else '<span class="badge bg-warning me-1">Irregular</span>'
+                        border_class = " border-info" if task['detail'].get('regular', 'Regular') == 'Regular' else " border-danger"
+                        bg_class = "" if task['detail']['status'] == "完了" else (" bg-regular-task" if task['detail'].get('regular', 'Regular') == 'Regular' else " bg-irregular-task")
+
+                        temp = """
         <div class="container my-3">
             <div class="card{card_color}{border_class}{bg_class} shadow-sm">
                 <div class="card-body">
@@ -677,7 +679,7 @@ if __name__ == '__main__':
                         border_class=border_class,
                         bg_class=bg_class
                     )
-                            content += temp
+                        content += temp
         else:
             content = """
         <div class="container">
@@ -703,10 +705,7 @@ if __name__ == '__main__':
 # 編集画面 --------------------------------------------------------------------------------------------
     elif mode=="edit":
         # 編集対象のタスク情報を取得
-        target_task_file = script_path + '/task/'+edit_task_id
-        target_task_detail = getStatus(target_task_file, "detail")
-        with open(target_task_file+'/contents.txt', 'r', encoding=str_code) as f:
-            target_task_content = f.read()
+        target_task_detail = getStatus(edit_task_id, "detail")
         
         # プルダウンのオプションを作成
         classifications = getClassifications()
@@ -1141,7 +1140,7 @@ document.addEventListener('DOMContentLoaded', function() {{
             create_中分類_html=create_中分類_html, 
             create_小分類_html=create_小分類_html, 
             regular_html=regular_html, 
-            content=target_task_content, 
+            content=target_task_detail['content'], 
             create_regular_js=create_regular_js,
             REQUEST_URL=REQUEST_URL,
             edit_bg_class=edit_bg_class
@@ -1151,7 +1150,7 @@ document.addEventListener('DOMContentLoaded', function() {{
 # タスク詳細画面 --------------------------------------------------------------------------------------------
     elif mode=="view":
         status = {}
-        status = getStatus(script_path + '/task/'+view_task_id+'/', "view")
+        status = getStatus(view_task_id, "view")
 
         # ピン止めアイコン
         pin_icon_div = '<span class="fs-4">📌</span>' if status.get('pinned', False) else ''
@@ -1263,74 +1262,42 @@ document.addEventListener('DOMContentLoaded', function() {{
 
 # 更新処理 --------------------------------------------------------------------------------------------
     elif mode=="update":
-        f = open(script_path + '/task/'+update_task_id+'/contents.txt', 'w', encoding=str_code)
-        f.write(str(update_content).replace('\r\n', '\n'))
-        f.close()
+        # 更新内容を整形
+        updates = {
+            "name": update_task_name,
+            "status": update_state_select,
+            "update_date": update_update_datetime or datetime.datetime.utcnow().isoformat(timespec="seconds"),
+            "pinned": update_pinned,
+            "category": update_category_input,
+            "group_category": update_groupCategory,
+            "担当者": update_担当者,
+            "大分類": update_大分類,
+            "中分類": update_中分類,
+            "小分類": update_小分類,
+            "regular": "Regular" if update_regular else "Irregular",
+            "content": update_content,
+            "tags": [t.strip() for t in update_tags.split(',') if t.strip()],
+        }
 
-        config = configparser.ConfigParser()
-        config.optionxform = str
-        config.read(script_path + '/task/'+update_task_id+'/config.ini', encoding=str_code)
+        # 完了ステータスの場合は complete_date を付与
+        if update_state_select == "COMPLETE" and update_update_datetime:
+            updates["complete_date"] = update_update_datetime
+        elif update_state_select == "CONTINUE":
+            updates["complete_date"] = None
 
-        # 既存のセクションがない場合は作成
-        if not config.has_section('DATA'):
-            config.add_section('DATA')
-        if not config.has_section('STATUS'):
-            config.add_section('STATUS')
-
-        config['DATA']['UPDATE_DATA'] = update_update_datetime
-        config['STATUS']['STATUS'] = update_state_select
-        
-        # ステータスが完了なら完了日時を設定
-        if update_state_select == "COMPLETE":
-            config['DATA']['COMPLETE_DATE'] = update_update_datetime
-        
-        # カテゴリを「大分類_中分類_小分類」の形式で設定
-        category_parts = []
-        # if update_大分類:
-        #     category_parts.append(update_大分類)
-        if update_中分類:
-            category_parts.append(update_中分類)
-        if update_小分類:
-            category_parts.append(update_小分類)
-        
-        if category_parts:
-            # 値が存在する部分だけを「_」で連結
-            config['STATUS']['CATEGORY'] = '_'.join(category_parts)
-        else:
-            # すべて空の場合は入力された値をそのまま使用
-            config['STATUS']['CATEGORY'] = update_category_input
-            
-        config['STATUS']['PINNED'] = str(update_pinned)  # 新規作成時はピン止めなし
-        
-        # タグリストを作成し、グループと分類を追加
-        tags_list = [tag.strip() for tag in update_tags.split(',') if tag.strip()]
-        
-        # グループと分類の値をタグに追加（空でない場合のみ）
-        if update_groupCategory:
-            tags_list.append(update_groupCategory)
-        if update_大分類:
-            tags_list.append(update_大分類)
-        if update_中分類:
-            tags_list.append(update_中分類)
-        if update_小分類:
-            tags_list.append(update_小分類)
-            
-        # 重複を排除
-        unique_tags = list(set(tags_list))
-        config['STATUS']['TAGS'] = ','.join(unique_tags)
-        
-        config['STATUS']['GROUPCATEGORY'] = update_groupCategory
-        config['STATUS']['担当者'] = update_担当者
-        config['STATUS']['大分類'] = update_大分類
-        config['STATUS']['中分類'] = update_中分類
-        config['STATUS']['小分類'] = update_小分類
-        config['STATUS']['REGULAR'] = 'Regular' if update_regular else 'Irregular'
-
-        with open(script_path + '/task/'+update_task_id+'/config.ini', mode='w', encoding=str_code) as write_config:
-            config.write(write_config)
+        try:
+            db.update(update_task_id, updates)
+        except Exception:
+            import traceback, html
+            header()
+            print("<pre>")
+            print(html.escape(traceback.format_exc()))
+            print("</pre>")
+            footer()
+            sys.exit(0)
 
         url = ("http://" + os.environ['HTTP_HOST'] + REQUEST_URL).split("?")[0]
-        print("<meta http-equiv=\"refresh\" content=\"0;URL="+url+"\">")
+        print(f"<meta http-equiv=\"refresh\" content=\"0;URL={url}\" />")
 
 # 作成画面 --------------------------------------------------------------------------------------------
     elif mode=="create":
@@ -1488,8 +1455,6 @@ function updateDaiCategories() {
         option.textContent = dai;
         daiSelect.appendChild(option);
     });
-    
-    // 大分類が変更されたので、中分類と小分類も更新
     updateChuCategories();
 }
 
@@ -1520,8 +1485,6 @@ function updateChuCategories() {
         option.textContent = chu;
         chuSelect.appendChild(option);
     });
-    
-    // 中分類が変更されたので、小分類も更新
     updateShoCategories();
 }
 
@@ -1714,79 +1677,63 @@ document.addEventListener('DOMContentLoaded', function() {
         
 # 作成処理 --------------------------------------------------------------------------------------------
     elif mode=="write":
-        os.mkdir(script_path + '/task/'+create_task_id)
-        f = open(script_path + '/task/'+create_task_id+'/contents.txt', 'w', encoding=str_code)
-        f.write(str(create_content).replace('\r\n', '\n'))
-        f.close()
+        # タスク辞書を構築してデータベースへ登録
+        task_dict = {
+            "id": create_task_id or str(uuid.uuid4()),
+            "name": create_task_name,
+            "status": create_state_select or "CONTINUE",
+            "create_date": create_create_datetime or datetime.datetime.utcnow().isoformat(timespec="seconds"),
+            "update_date": create_update_datetime or datetime.datetime.utcnow().isoformat(timespec="seconds"),
+            "complete_date": (create_create_datetime if create_state_select == "COMPLETE" else None),
+            "pinned": create_pinned,
+            "category": create_category_input,
+            "group_category": create_groupCategory,
+            "担当者": create_担当者,
+            "大分類": create_大分類,
+            "中分類": create_中分類,
+            "小分類": create_小分類,
+            "regular": "Regular" if create_regular else "Irregular",
+            "content": create_content,
+            # タグはカンマ区切り文字列→リストへ変換し、空要素除外
+            "tags": [t.strip() for t in create_tags.split(',') if t.strip()],
+        }
 
-        config = configparser.ConfigParser()
-        config.optionxform = str
-        config.add_section("DATA")
-        config.set("DATA", 'CREATE_DATA', create_create_datetime)
-        config.set("DATA", 'UPDATE_DATA', create_create_datetime)
-        config.add_section("STATUS")
-        config.set("STATUS", 'NAME', create_task_name)
-        config.set("STATUS", 'STATUS', create_state_select)
-        
-        # ステータスが完了なら完了日時を設定
-        if create_state_select == "COMPLETE":
-            config.set("DATA", 'COMPLETE_DATE', create_create_datetime)
-        
-        # カテゴリを「大分類_中分類_小分類」の形式で設定
-        category_parts = []
-        # if create_大分類:
-        #     category_parts.append(create_大分類)
-        if create_中分類:
-            category_parts.append(create_中分類)
-        if create_小分類:
-            category_parts.append(create_小分類)
-        
-        if category_parts:
-            # 値が存在する部分だけを「_」で連結
-            config.set("STATUS", 'CATEGORY', '_'.join(category_parts))
-        else:
-            # すべて空の場合は入力された値をそのまま使用
-            config.set("STATUS", 'CATEGORY', create_category_input)
-            
-        config.set("STATUS", 'PINNED', str(create_pinned))  # 新規作成時はピン止めなし
-        
-        # タグリストを作成し、グループと分類を追加
-        tags_list = [tag.strip() for tag in create_tags.split(',') if tag.strip()]
-        
-        # グループと分類の値をタグに追加（空でない場合のみ）
-        if create_groupCategory:
-            tags_list.append(create_groupCategory)
-        if create_大分類:
-            tags_list.append(create_大分類)
-        if create_中分類:
-            tags_list.append(create_中分類)
-        if create_小分類:
-            tags_list.append(create_小分類)
-            
-        # 重複を排除
-        unique_tags = list(set(tags_list))
-        config.set("STATUS", 'TAGS', ','.join(unique_tags))
-        
-        config.set("STATUS", 'GROUPCATEGORY', create_groupCategory)
-        config.set("STATUS", '担当者', create_担当者)
-        config.set("STATUS", '大分類', create_大分類)
-        config.set("STATUS", '中分類', create_中分類)
-        config.set("STATUS", '小分類', create_小分類)
-        config.set("STATUS", 'REGULAR', 'Regular' if create_regular else 'Irregular')
+        # データベースへ挿入
+        try:
+            db.insert(task_dict)
+        except Exception as e:
+            # DB エラー時は簡易的にスタックトレースをブラウザへ表示してデバッグしやすくする
+            import traceback, html
+            header()
+            print("<pre>")
+            print(html.escape(traceback.format_exc()))
+            print("</pre>")
+            footer()
+            sys.exit(0)
 
-        with open(script_path + '/task/'+create_task_id+'/config.ini', mode='w', encoding=str_code) as write_config:
-            config.write(write_config)
-
-        # 権限の変更
-        os.chmod(script_path + '/task/'+create_task_id, permission)
-        os.chmod(script_path + '/task/'+create_task_id+'/config.ini', permission)
-        os.chmod(script_path + '/task/'+create_task_id+'/contents.txt', permission)
-
+        # 登録後にリダイレクト
         url = ("http://" + os.environ['HTTP_HOST'] + REQUEST_URL).split("?")[0]
-        print("<meta http-equiv=\"refresh\" content=\"0;URL="+url+"\">")
-
+        print(f"<meta http-equiv=\"refresh\" content=\"0;URL={url}\" />")
+        
 # 削除処理 --------------------------------------------------------------------------------------------
     elif mode=="delete":
-        shutil.rmtree(script_path + '/task/'+delete_task_id)
+        try:
+            db.delete(delete_task_id)
+        except Exception:
+            import traceback, html
+            header()
+            print("<pre>")
+            print(html.escape(traceback.format_exc()))
+            print("</pre>")
+            footer()
+            sys.exit(0)
         url = ("http://" + os.environ['HTTP_HOST'] + REQUEST_URL).split("?")[0]
-        print("<meta http-equiv=\"refresh\" content=\"0;URL="+url+"\">")
+        print(f"<meta http-equiv=\"refresh\" content=\"0;URL={url}\" />")
+
+# Legacy task folder import
+    elif mode=="import":
+        imported, skipped = import_legacy_tasks()
+        header()
+        nav()
+        print(f"<div class='container my-5'><div class='alert alert-success'>Legacy tasks imported: {imported} (skipped {skipped})</div></div>")
+        footer()
