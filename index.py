@@ -434,7 +434,7 @@ def load_templates():
     except json.JSONDecodeError:
         return []
 
-TEMPLATE_MODAL_HTML_SCRIPT = """
+TEMPLATE_MODAL_HTML_SCRIPT = r"""
 <div class="modal fade" id="templateModal" tabindex="-1" aria-labelledby="templateModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg">
     <div class="modal-content">
@@ -462,62 +462,48 @@ TEMPLATE_MODAL_HTML_SCRIPT = """
     </div>
   </div>
 </div>
-
 <script>
-  let currentTargetTextareaId = ''; // テンプレートを適用するテキストエリアのID
+  let currentTargetTextareaId = '';
   let allTemplates = [];
-
   document.addEventListener('DOMContentLoaded', function() {
-    // Djangoテンプレートや他のスクリプトと干渉しないように、テンプレートデータを直接JavaScriptに埋め込む
-    // Python側で allTemplates = {{ templates_json|safe }}; のように渡すことを想定
-    // ここでは仮のデータを直接設定するか、別途APIエンドポイントから取得する
-    // 今回はPythonから直接HTMLに埋め込むため、Python側で templates_json 変数を準備する
-
     const templateModal = new bootstrap.Modal(document.getElementById('templateModal'));
     const templateSelect = document.getElementById('templateSelect');
     const templateContents = document.getElementById('templateContents');
     const templateInputsContainer = document.getElementById('templateInputsContainer');
     const applyTemplateButton = document.getElementById('applyTemplateButton');
-
-    // 「テンプレートを開く」ボタンのイベントリスナー
-    document.querySelectorAll('.open-template-modal-button').forEach(button => {
+    document.querySelectorAll('.open-template-modal-button').forEach(function(button) {
       button.addEventListener('click', function() {
         currentTargetTextareaId = this.dataset.targetTextarea;
         loadTemplatesToModal();
         templateModal.show();
       });
     });
-
     function loadTemplatesToModal() {
-        templateSelect.innerHTML = '<option value="">選択してください</option>'; // プルダウンを初期化
-        allTemplates.forEach((template, index) => {
-            const option = document.createElement('option');
-            option.value = index;
-            option.textContent = template.name;
-            templateSelect.appendChild(option);
-        });
+      templateSelect.innerHTML = '<option value="">選択してください</option>';
+      allTemplates.forEach(function(template, index) {
+        const option = document.createElement('option');
+        option.value = index;
+        option.textContent = template.name;
+        templateSelect.appendChild(option);
+      });
     }
-
     templateSelect.addEventListener('change', function() {
       const selectedIndex = this.value;
-      templateInputsContainer.innerHTML = ''; // 入力欄をクリア
+      templateInputsContainer.innerHTML = '';
       if (selectedIndex === "") {
         templateContents.value = '';
         return;
       }
       const selectedTemplate = allTemplates[selectedIndex];
       templateContents.value = selectedTemplate.contents;
-
       if (selectedTemplate.input_contents) {
-        selectedTemplate.input_contents.forEach(inputItem => {
+        selectedTemplate.input_contents.forEach(function(inputItem) {
           const formGroup = document.createElement('div');
           formGroup.classList.add('mb-3');
-
           const label = document.createElement('label');
           label.classList.add('form-label');
           label.textContent = inputItem.input_name;
           formGroup.appendChild(label);
-
           if (inputItem.type === 'textarea') {
             const textarea = document.createElement('textarea');
             textarea.classList.add('form-control');
@@ -527,7 +513,7 @@ TEMPLATE_MODAL_HTML_SCRIPT = """
             const select = document.createElement('select');
             select.classList.add('form-select');
             select.dataset.inputName = inputItem.input_name;
-            inputItem.options.forEach(opt => {
+            inputItem.options.forEach(function(opt) {
               const optionElement = document.createElement('option');
               optionElement.value = opt;
               optionElement.textContent = opt;
@@ -545,23 +531,18 @@ TEMPLATE_MODAL_HTML_SCRIPT = """
         });
       }
     });
-
     applyTemplateButton.addEventListener('click', function() {
       const targetTextarea = document.getElementById(currentTargetTextareaId);
       if (!targetTextarea) return;
-
       let combinedContent = templateContents.value;
       const inputs = templateInputsContainer.querySelectorAll('[data-input-name]');
-      inputs.forEach(input => {
-        combinedContent += `\n${input.dataset.inputName}: ${input.value}`;
+      inputs.forEach(function(input) {
+        combinedContent += "\n" + input.dataset.inputName + ": " + input.value;
       });
-
-      targetTextarea.value = combinedContent;
+      targetTextarea.value += "\n" + combinedContent;
       templateModal.hide();
     });
   });
-
-  // Pythonからテンプレートデータを設定するための関数
   function setTemplatesData(templates) {
     allTemplates = templates;
   }
