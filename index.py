@@ -423,6 +423,151 @@ def import_legacy_tasks():
         imported += 1
     return (imported, skipped)
 
+# テンプレート読み込み関数
+def load_templates():
+    try:
+        with open('templates.json', 'r', encoding='utf-8') as f:
+            templates = json.load(f)
+        return templates
+    except FileNotFoundError:
+        return []
+    except json.JSONDecodeError:
+        return []
+
+TEMPLATE_MODAL_HTML_SCRIPT = """
+<div class="modal fade" id="templateModal" tabindex="-1" aria-labelledby="templateModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="templateModalLabel">テンプレートを選択</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-3">
+          <label for="templateSelect" class="form-label">テンプレート名</label>
+          <select id="templateSelect" class="form-select">
+            <option value="">選択してください</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label for="templateContents" class="form-label">テンプレート内容</label>
+          <textarea id="templateContents" class="form-control" rows="5" readonly></textarea>
+        </div>
+        <div id="templateInputsContainer"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">閉じる</button>
+        <button type="button" class="btn btn-primary" id="applyTemplateButton">入力</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let currentTargetTextareaId = ''; // テンプレートを適用するテキストエリアのID
+  let allTemplates = [];
+
+  document.addEventListener('DOMContentLoaded', function() {
+    // Djangoテンプレートや他のスクリプトと干渉しないように、テンプレートデータを直接JavaScriptに埋め込む
+    // Python側で allTemplates = {{ templates_json|safe }}; のように渡すことを想定
+    // ここでは仮のデータを直接設定するか、別途APIエンドポイントから取得する
+    // 今回はPythonから直接HTMLに埋め込むため、Python側で templates_json 変数を準備する
+
+    const templateModal = new bootstrap.Modal(document.getElementById('templateModal'));
+    const templateSelect = document.getElementById('templateSelect');
+    const templateContents = document.getElementById('templateContents');
+    const templateInputsContainer = document.getElementById('templateInputsContainer');
+    const applyTemplateButton = document.getElementById('applyTemplateButton');
+
+    // 「テンプレートを開く」ボタンのイベントリスナー
+    document.querySelectorAll('.open-template-modal-button').forEach(button => {
+      button.addEventListener('click', function() {
+        currentTargetTextareaId = this.dataset.targetTextarea;
+        loadTemplatesToModal();
+        templateModal.show();
+      });
+    });
+
+    function loadTemplatesToModal() {
+        templateSelect.innerHTML = '<option value="">選択してください</option>'; // プルダウンを初期化
+        allTemplates.forEach((template, index) => {
+            const option = document.createElement('option');
+            option.value = index;
+            option.textContent = template.name;
+            templateSelect.appendChild(option);
+        });
+    }
+
+    templateSelect.addEventListener('change', function() {
+      const selectedIndex = this.value;
+      templateInputsContainer.innerHTML = ''; // 入力欄をクリア
+      if (selectedIndex === "") {
+        templateContents.value = '';
+        return;
+      }
+      const selectedTemplate = allTemplates[selectedIndex];
+      templateContents.value = selectedTemplate.contents;
+
+      if (selectedTemplate.input_contents) {
+        selectedTemplate.input_contents.forEach(inputItem => {
+          const formGroup = document.createElement('div');
+          formGroup.classList.add('mb-3');
+
+          const label = document.createElement('label');
+          label.classList.add('form-label');
+          label.textContent = inputItem.input_name;
+          formGroup.appendChild(label);
+
+          if (inputItem.type === 'textarea') {
+            const textarea = document.createElement('textarea');
+            textarea.classList.add('form-control');
+            textarea.dataset.inputName = inputItem.input_name;
+            formGroup.appendChild(textarea);
+          } else if (inputItem.type === 'select' && inputItem.options) {
+            const select = document.createElement('select');
+            select.classList.add('form-select');
+            select.dataset.inputName = inputItem.input_name;
+            inputItem.options.forEach(opt => {
+              const optionElement = document.createElement('option');
+              optionElement.value = opt;
+              optionElement.textContent = opt;
+              select.appendChild(optionElement);
+            });
+            formGroup.appendChild(select);
+          } else {
+            const input = document.createElement('input');
+            input.type = inputItem.type || 'text';
+            input.classList.add('form-control');
+            input.dataset.inputName = inputItem.input_name;
+            formGroup.appendChild(input);
+          }
+          templateInputsContainer.appendChild(formGroup);
+        });
+      }
+    });
+
+    applyTemplateButton.addEventListener('click', function() {
+      const targetTextarea = document.getElementById(currentTargetTextareaId);
+      if (!targetTextarea) return;
+
+      let combinedContent = templateContents.value;
+      const inputs = templateInputsContainer.querySelectorAll('[data-input-name]');
+      inputs.forEach(input => {
+        combinedContent += `\n${input.dataset.inputName}: ${input.value}`;
+      });
+
+      targetTextarea.value = combinedContent;
+      templateModal.hide();
+    });
+  });
+
+  // Pythonからテンプレートデータを設定するための関数
+  function setTemplatesData(templates) {
+    allTemplates = templates;
+  }
+</script>
+"""
+
 if __name__ == '__main__':
     print('Content-type: text/html; charset=UTF-8\r\n')
     # 一覧画面
@@ -700,6 +845,9 @@ if __name__ == '__main__':
         </div>
         """)
         
+        print(TEMPLATE_MODAL_HTML_SCRIPT) # 先に関数定義を含むスクリプトを出力
+        templates_json_data = json.dumps(load_templates())
+        print(f"<script>setTemplatesData({templates_json_data});</script>")
         footer()
 
 # 編集画面 --------------------------------------------------------------------------------------------
@@ -1054,6 +1202,7 @@ document.addEventListener('DOMContentLoaded', function() {{
 
                                 <div class="form-group mb-4">
                                     <label for="content" class="form-label"><i class="bi bi-card-text"></i> 内容</label>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary ms-2 open-template-modal-button" data-target-textarea="content"><i class="bi bi-file-earmark-plus"></i> テンプレートを開く</button>
                                     <textarea id="content" name="update_content" class="form-control" rows="10">{content}</textarea>
                                     <small class="form-text text-muted">マークダウン記法が使用できます</small>
                                 </div>
@@ -1098,6 +1247,8 @@ document.addEventListener('DOMContentLoaded', function() {{
                                         {create_小分類_html}
                                     </div>
                                 </div>
+                                
+                                {regular_html}
                                 
                                 <div class="row mb-3">
                                     <div class="col-md-6">
@@ -1145,6 +1296,10 @@ document.addEventListener('DOMContentLoaded', function() {{
             REQUEST_URL=REQUEST_URL,
             edit_bg_class=edit_bg_class
         ))
+        
+        print(TEMPLATE_MODAL_HTML_SCRIPT) # 先に関数定義を含むスクリプトを出力
+        templates_json_data = json.dumps(load_templates())
+        print(f"<script>setTemplatesData({templates_json_data});</script>")
         footer()
 
 # タスク詳細画面 --------------------------------------------------------------------------------------------
@@ -1258,6 +1413,10 @@ document.addEventListener('DOMContentLoaded', function() {{
             regular_badge=regular_badge, 
             view_bg_class=view_bg_class
         ))
+        
+        print(TEMPLATE_MODAL_HTML_SCRIPT) # 先に関数定義を含むスクリプトを出力
+        templates_json_data = json.dumps(load_templates())
+        print(f"<script>setTemplatesData({templates_json_data});</script>")
         footer()
 
 # 更新処理 --------------------------------------------------------------------------------------------
@@ -1624,7 +1783,7 @@ document.addEventListener('DOMContentLoaded', function() {
                                 </div>
                                 
                                 {tags_html}
-                                
+
                                 <div class="row mb-3">
                                     <div class="col-md-4">
                                         {create_大分類_html}
@@ -1640,8 +1799,9 @@ document.addEventListener('DOMContentLoaded', function() {
                                 {regular_html}
                                 
                                 <div class="form-group mb-4">
-                                    <label for="content" class="form-label"><i class="bi bi-card-text"></i> 内容</label>
-                                    <textarea id="content" name="create_content" class="form-control" rows="10"></textarea>
+                                    <label for="content_create" class="form-label"><i class="bi bi-card-text"></i> 内容</label>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary ms-2 open-template-modal-button" data-target-textarea="content_create"><i class="bi bi-file-earmark-plus"></i> テンプレートを開く</button>
+                                    <textarea id="content_create" name="create_content" class="form-control" rows="10"></textarea>
                                     <small class="form-text text-muted">マークダウン記法が使用できます</small>
                                 </div>
                                 
@@ -1673,6 +1833,9 @@ document.addEventListener('DOMContentLoaded', function() {
         
         """.format(uuid=uuid, create_html=create_html, update_html=update_html, status_html=status_html, category_html=category_html, create_group_html=create_group_html, create_担当者_html=create_担当者_html, pinned_html=pinned_html, tags_html=tags_html, create_大分類_html=create_大分類_html, create_中分類_html=create_中分類_html, create_小分類_html=create_小分類_html, regular_html=regular_html, create_regular_js=create_regular_js, REQUEST_URL=REQUEST_URL, create_bg_class=create_bg_class))
         
+        print(TEMPLATE_MODAL_HTML_SCRIPT) # 先に関数定義を含むスクリプトを出力
+        templates_json_data = json.dumps(load_templates())
+        print(f"<script>setTemplatesData({templates_json_data});</script>")
         footer()
         
 # 作成処理 --------------------------------------------------------------------------------------------
@@ -1736,4 +1899,8 @@ document.addEventListener('DOMContentLoaded', function() {
         header()
         nav()
         print(f"<div class='container my-5'><div class='alert alert-success'>Legacy tasks imported: {imported} (skipped {skipped})</div></div>")
+
+        print(TEMPLATE_MODAL_HTML_SCRIPT) # 先に関数定義を含むスクリプトを出力
+        templates_json_data = json.dumps(load_templates())
+        print(f"<script>setTemplatesData({templates_json_data});</script>")
         footer()

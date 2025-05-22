@@ -1,0 +1,17 @@
+[
+  {
+    "name": "日報テンプレート",
+    "contents": "今日行った作業内容：\n気づいた点：\n明日の予定：",
+    "input_contents": [
+      {"input_name": "作業時間", "type": "text"},
+      {"input_name": "進捗度", "type": "number"}
+    ]
+  },
+  {
+    "name": "バグ報告テンプレート",
+    "contents": "発生バージョン：\n再現手順：\n期待される結果：\n実際の結果：",
+    "input_contents": [
+      {"input_name": "重要度", "type": "select", "options": ["高", "中", "低"]}
+    ]
+  }
+]
