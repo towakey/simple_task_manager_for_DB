@@ -120,13 +120,10 @@ def getStatus(task_id, mode):
         result['小分類'] = ""
         result['regular'] = ""
     if mode == "index":
-        # マークダウンリンクをHTMLリンクに変換
-        result['content'] = re.sub(r'\[([^\]]+)\]\(([^\)]+)\)', r'<a href="\2">\1</a>', result['content'])
-        result['content'] = result['content'].replace('\n', '<br>')
-    elif mode == "edit":
-        result['content'] = result['content']
-    elif mode == "view":
-        result['content'] = result['content']
+        # マークダウンリンクをHTMLリンクに変換し、改行を<br>タグに変換
+        content = result['content']
+        content = re.sub(r'\[([^\]]+)\]\(([^\)]+)\)', r'<a href="\2">\1</a>', content)
+        result['content'] = content.replace('\n', '<br>')
     return result
 
 # カテゴリー一覧を作成
@@ -1415,7 +1412,7 @@ document.addEventListener('DOMContentLoaded', function() {{
             "中分類": update_中分類,
             "小分類": update_小分類,
             "regular": "Regular" if update_regular else "Irregular",
-            "content": update_content,
+            "content": update_content.replace('\r\n', '\n').replace('\r', '\n'),
             "tags": [t.strip() for t in update_tags.split(',') if t.strip()],
         }
 
@@ -1837,7 +1834,7 @@ document.addEventListener('DOMContentLoaded', function() {
             "中分類": create_中分類,
             "小分類": create_小分類,
             "regular": "Regular" if create_regular else "Irregular",
-            "content": create_content,
+            "content": create_content.replace('\r\n', '\n').replace('\r', '\n'),
             # タグはカンマ区切り文字列→リストへ変換し、空要素除外
             "tags": [t.strip() for t in create_tags.split(',') if t.strip()],
         }
