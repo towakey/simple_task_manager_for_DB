@@ -796,7 +796,7 @@ if __name__ == '__main__':
                         incident=datetime.datetime.strptime(task['detail'].get('発生日', task['detail']['create_date']), '%Y-%m-%dT%H:%M:%S').strftime('%Y-%m-%dT%H:%M:%S'),
                         update=datetime.datetime.strptime(task['detail']['update_date'], '%Y-%m-%dT%H:%M:%S').strftime('%Y-%m-%dT%H:%M:%S'),
                         complete=(datetime.datetime.strptime(task['detail']['complete_date'], '%Y-%m-%dT%H:%M:%S').strftime('%Y-%m-%dT%H:%M:%S') if task['detail'].get('complete_date') else ''),
-                        content=task['detail']['content'],
+                        content=task['detail']['content'].replace('\n', '<br>'),
                         status=task['detail']['status'],
                         category=task['detail']['category'],
                         担当者=task['detail'].get('担当者', ''),
