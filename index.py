@@ -1722,8 +1722,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="col-lg-10">
                     <form action="{REQUEST_URL}" method="post">
                         <div class="card shadow">
-                            <div class="card-header bg-success text-white">
+                            <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
                                 <h3 class="mb-0"><i class="bi bi-plus-circle"></i> 新規タスク作成</h3>
+                                {regular_html}
                             </div>
                             <div class="card-body">
                                 <input type="hidden" name="mode" value="write"/>
@@ -1771,8 +1772,6 @@ document.addEventListener('DOMContentLoaded', function() {
                                         {create_小分類_html}
                                     </div>
                                 </div>
-                                
-                                {regular_html}
                                 
                                 <div class="form-group mb-4">
                                     <label for="content_create" class="form-label"><i class="bi bi-card-text"></i> 内容</label>
