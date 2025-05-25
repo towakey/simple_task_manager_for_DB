@@ -448,7 +448,7 @@ TEMPLATE_MODAL_HTML_SCRIPT = r"""
         </div>
         <div class="mb-3">
           <label for="templateContents" class="form-label">テンプレート内容</label>
-          <textarea id="templateContents" class="form-control" rows="5" readonly></textarea>
+          <textarea id="templateContents" class="form-control" rows="5"></textarea>
         </div>
         <div id="templateInputsContainer"></div>
       </div>
