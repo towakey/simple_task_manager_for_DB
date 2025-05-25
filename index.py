@@ -1225,9 +1225,7 @@ document.addEventListener('DOMContentLoaded', function() {{
                                         {create_小分類_html}
                                     </div>
                                 </div>
-                                
-                                {regular_html}
-                                
+                                                                
                                 <div class="row mb-3">
                                     <div class="col-md-6">
                                         {create_html}
