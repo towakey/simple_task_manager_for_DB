@@ -423,7 +423,7 @@ def import_legacy_tasks():
 # テンプレート読み込み関数
 def load_templates():
     try:
-        with open('templates.json', 'r', encoding='utf-8') as f:
+        with open(os.path.join(script_path, 'templates.json'), 'r', encoding='utf-8') as f:
             templates = json.load(f)
         return templates
     except FileNotFoundError:
