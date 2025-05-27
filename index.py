@@ -454,7 +454,7 @@ TEMPLATE_MODAL_HTML_SCRIPT = r"""
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">閉じる</button>
-        <button type="button" class="btn btn-primary" id="applyTemplateButton">入力</button>
+        <button type="button" class="btn btn-primary" id="applyTemplateButton" data-bs-dismiss="modal">入力</button>
       </div>
     </div>
   </div>
@@ -462,8 +462,9 @@ TEMPLATE_MODAL_HTML_SCRIPT = r"""
 <script>
   let currentTargetTextareaId = '';
   let allTemplates = [];
+  let templateModal; // グローバル変数として定義
   document.addEventListener('DOMContentLoaded', function() {
-    const templateModal = new bootstrap.Modal(document.getElementById('templateModal'));
+    templateModal = new bootstrap.Modal(document.getElementById('templateModal')); // グローバル変数に代入
     const templateSelect = document.getElementById('templateSelect');
     const templateContents = document.getElementById('templateContents');
     const templateInputsContainer = document.getElementById('templateInputsContainer');
@@ -537,7 +538,27 @@ TEMPLATE_MODAL_HTML_SCRIPT = r"""
         combinedContent += "\n" + input.dataset.inputName + ": " + input.value;
       });
       targetTextarea.value += "\n" + combinedContent;
-      templateModal.hide();
+      
+      // モーダルを確実に閉じる処理
+      try {
+        templateModal.hide();
+        console.log('テンプレートモーダルを閉じました');
+        
+        // フォーカスをテキストエリアに移動
+        setTimeout(() => {
+          targetTextarea.focus();
+          // カーソルを末尾に移動
+          targetTextarea.selectionStart = targetTextarea.selectionEnd = targetTextarea.value.length;
+        }, 100);
+      } catch (e) {
+        console.error('モーダルを閉じる際にエラーが発生しました:', e);
+        // エラーが発生した場合のフォールバック
+        const modalElement = document.getElementById('templateModal');
+        if (modalElement) {
+          const bsModal = bootstrap.Modal.getInstance(modalElement);
+          if (bsModal) bsModal.hide();
+        }
+      }
     });
   });
   function setTemplatesData(templates) {
@@ -1960,6 +1981,9 @@ document.addEventListener('DOMContentLoaded', function() {
                         chuSelect ? chuSelect.value : 'not found',
                         shoSelect ? shoSelect.value : 'not found'
                     );
+                    
+                    // 選択した分類に一致するテンプレートを探す
+                    findMatchingTemplate(selectedGroup, selectedDai, selectedChu, selectedSho);
                 }, 100);
             }, 100);
         }, 100);
@@ -1967,6 +1991,117 @@ document.addEventListener('DOMContentLoaded', function() {
         // モーダルを閉じる
         classificationModal.hide();
     });
+    
+    // 選択された分類に一致するテンプレートを探して表示する関数
+    function findMatchingTemplate(group, dai, chu, sho) {
+        if (!allTemplates || allTemplates.length === 0) {
+            console.log('No templates available');
+            return;
+        }
+        
+        console.log('Searching for template matching:', group, dai, chu, sho);
+        
+        // 全ての値が一致するテンプレートを探す
+        let matchingTemplate = allTemplates.find(template => {
+            return template.group === group && 
+                   template.大分類 === dai && 
+                   template.中分類 === chu && 
+                   template.小分類 === sho;
+        });
+        
+        // 完全一致しない場合は、グループと大分類だけで探す
+        if (!matchingTemplate) {
+            matchingTemplate = allTemplates.find(template => {
+                return template.group === group && template.大分類 === dai;
+            });
+        }
+        
+        // それでも見つからない場合は、グループだけで探す
+        if (!matchingTemplate) {
+            matchingTemplate = allTemplates.find(template => {
+                return template.group === group;
+            });
+        }
+        
+        if (matchingTemplate) {
+            console.log('Found matching template:', matchingTemplate.name);
+            
+            // テンプレートモーダルを表示するための準備
+            setTimeout(() => {
+                const templateModal = new bootstrap.Modal(document.getElementById('templateModal'));
+                
+                // テンプレートを選択した状態にする
+                currentTargetTextareaId = 'content_create'; // 内容フィールドのID
+                
+                // テンプレートの選択肢を更新
+                const templateSelect = document.getElementById('templateSelect');
+                templateSelect.innerHTML = '<option value="">選択してください</option>';
+                
+                allTemplates.forEach(function(template, index) {
+                    const option = document.createElement('option');
+                    option.value = index;
+                    option.textContent = template.name;
+                    // 一致するテンプレートを選択状態にする
+                    if (template === matchingTemplate) {
+                        option.selected = true;
+                    }
+                    templateSelect.appendChild(option);
+                });
+                
+                // 選択したテンプレートの内容を表示
+                const templateContents = document.getElementById('templateContents');
+                templateContents.value = matchingTemplate.contents;
+                
+                // 入力フィールドも表示
+                const templateInputsContainer = document.getElementById('templateInputsContainer');
+                templateInputsContainer.innerHTML = '';
+                
+                if (matchingTemplate.input_contents) {
+                    matchingTemplate.input_contents.forEach(function(inputItem) {
+                        const formGroup = document.createElement('div');
+                        formGroup.classList.add('mb-3');
+                        
+                        const label = document.createElement('label');
+                        label.classList.add('form-label');
+                        label.textContent = inputItem.input_name;
+                        formGroup.appendChild(label);
+                        
+                        let input;
+                        
+                        if (inputItem.type === 'select' && inputItem.options) {
+                            input = document.createElement('select');
+                            input.classList.add('form-select');
+                            
+                            inputItem.options.forEach(function(optionText) {
+                                const option = document.createElement('option');
+                                option.value = optionText;
+                                option.textContent = optionText;
+                                input.appendChild(option);
+                            });
+                        } else if (inputItem.type === 'number') {
+                            input = document.createElement('input');
+                            input.type = 'number';
+                            input.classList.add('form-control');
+                        } else {
+                            input = document.createElement('input');
+                            input.type = 'text';
+                            input.classList.add('form-control');
+                        }
+                        
+                        input.id = 'template_input_' + inputItem.input_name;
+                        input.dataset.inputName = inputItem.input_name;
+                        formGroup.appendChild(input);
+                        templateInputsContainer.appendChild(formGroup);
+                    });
+                }
+                
+                // テンプレートモーダルを表示
+                templateModal.show();
+            }, 300);
+        } else {
+            console.log('No matching template found');
+        }
+    }
 });
 </script>
 """
