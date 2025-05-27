@@ -1583,6 +1583,58 @@ document.addEventListener('DOMContentLoaded', function() {{
 </div>
 """
 
+        # 分類選択用モーダルHTML
+        classification_modal_html = """
+<div class="modal fade" id="classificationModal" tabindex="-1" aria-labelledby="classificationModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="classificationModalLabel">分類の選択</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="classificationForm">
+          <div class="row mb-3">
+            <div class="col-md-6">
+              <label for="modalGroup" class="form-label"><i class="bi bi-people"></i> グループ</label>
+              <select id="modalGroup" class="form-select" onchange="updateModalDaiCategories()">
+                <option value="">選択してください</option>
+                {group_options}
+              </select>
+            </div>
+          </div>
+
+          <div class="row mb-3">
+            <div class="col-md-4">
+              <label for="modalDai" class="form-label"><i class="bi bi-diagram-3"></i> 大分類</label>
+              <select id="modalDai" class="form-select" onchange="updateModalChuCategories()">
+                <option value="">選択してください</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label for="modalChu" class="form-label"><i class="bi bi-diagram-2"></i> 中分類</label>
+              <select id="modalChu" class="form-select" onchange="updateModalShoCategories()">
+                <option value="">選択してください</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label for="modalSho" class="form-label"><i class="bi bi-diagram-1"></i> 小分類</label>
+              <select id="modalSho" class="form-select">
+                <option value="">選択してください</option>
+              </select>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">キャンセル</button>
+        <button type="button" class="btn btn-primary" id="applyClassificationButton">適用する</button>
+      </div>
+    </div>
+  </div>
+</div>
+"""
+
         # 背景色クラス（デフォルトは定型）
         create_bg_class = "bg-regular-task"
 
@@ -1744,12 +1796,19 @@ document.addEventListener('DOMContentLoaded', function() {
         regularTypeModal.show();
     }, 500);
     
+    // 分類モーダルの準備
+    const classificationModal = new bootstrap.Modal(document.getElementById('classificationModal'));
+    
     // モーダルのボタン処理
     document.getElementById('selectRegularButton').addEventListener('click', function() {
         regularSwitch.checked = true;
         cardElement.classList.add('bg-regular-task');
         cardElement.classList.remove('bg-irregular-task');
         regularTypeModal.hide();
+        // 定型タスクを選択した場合は分類モーダルを表示
+        setTimeout(() => {
+            classificationModal.show();
+        }, 500);
     });
     
     document.getElementById('selectIrregularButton').addEventListener('click', function() {
@@ -1758,6 +1817,156 @@ document.addEventListener('DOMContentLoaded', function() {
         cardElement.classList.add('bg-irregular-task');
         regularTypeModal.hide();
     });
+    
+    // 分類モーダルの大分類更新処理
+    window.updateModalDaiCategories = function() {
+        const groupSelect = document.getElementById('modalGroup');
+        const daiSelect = document.getElementById('modalDai');
+        const selectedGroup = groupSelect.value;
+        
+        // 大分類のオプションをクリア
+        daiSelect.innerHTML = '<option value="">選択してください</option>';
+        
+        // 選択されたグループに基づいて大分類を更新
+        const uniqueDai = new Set();
+        classifications.forEach(item => {
+            if (selectedGroup === '' || item.group === selectedGroup) {
+                uniqueDai.add(item.dai);
+            }
+        });
+        
+        // 大分類のオプションを追加
+        Array.from(uniqueDai).sort().forEach(dai => {
+            const option = document.createElement('option');
+            option.value = dai;
+            option.textContent = dai;
+            daiSelect.appendChild(option);
+        });
+        updateModalChuCategories();
+    };
+    
+    // 分類モーダルの中分類更新処理
+    window.updateModalChuCategories = function() {
+        const groupSelect = document.getElementById('modalGroup');
+        const daiSelect = document.getElementById('modalDai');
+        const chuSelect = document.getElementById('modalChu');
+        const selectedGroup = groupSelect.value;
+        const selectedDai = daiSelect.value;
+        
+        // 中分類のオプションをクリア
+        chuSelect.innerHTML = '<option value="">選択してください</option>';
+        
+        // 選択されたグループと大分類に基づいて中分類を更新
+        const uniqueChu = new Set();
+        classifications.forEach(item => {
+            if ((selectedGroup === '' || item.group === selectedGroup) && 
+                (selectedDai === '' || item.dai === selectedDai)) {
+                uniqueChu.add(item.chu);
+            }
+        });
+        
+        // 中分類のオプションを追加
+        Array.from(uniqueChu).sort().forEach(chu => {
+            const option = document.createElement('option');
+            option.value = chu;
+            option.textContent = chu;
+            chuSelect.appendChild(option);
+        });
+        updateModalShoCategories();
+    };
+    
+    // 分類モーダルの小分類更新処理
+    window.updateModalShoCategories = function() {
+        const groupSelect = document.getElementById('modalGroup');
+        const daiSelect = document.getElementById('modalDai');
+        const chuSelect = document.getElementById('modalChu');
+        const shoSelect = document.getElementById('modalSho');
+        const selectedGroup = groupSelect.value;
+        const selectedDai = daiSelect.value;
+        const selectedChu = chuSelect.value;
+        
+        // 小分類のオプションをクリア
+        shoSelect.innerHTML = '<option value="">選択してください</option>';
+        
+        // 選択されたグループ、大分類、中分類に基づいて小分類を更新
+        const uniqueSho = new Set();
+        classifications.forEach(item => {
+            if ((selectedGroup === '' || item.group === selectedGroup) && 
+                (selectedDai === '' || item.dai === selectedDai) && 
+                (selectedChu === '' || item.chu === selectedChu)) {
+                uniqueSho.add(item.sho);
+            }
+        });
+        
+        // 小分類のオプションを追加
+        Array.from(uniqueSho).sort().forEach(sho => {
+            const option = document.createElement('option');
+            option.value = sho;
+            option.textContent = sho;
+            shoSelect.appendChild(option);
+        });
+    };
+    
+    // 分類適用ボタンの処理
+    document.getElementById('applyClassificationButton').addEventListener('click', function() {
+        // モーダルから選択した値を取得
+        const selectedGroup = document.getElementById('modalGroup').value;
+        const selectedDai = document.getElementById('modalDai').value;
+        const selectedChu = document.getElementById('modalChu').value;
+        const selectedSho = document.getElementById('modalSho').value;
+        
+        console.log('Selected values:', selectedGroup, selectedDai, selectedChu, selectedSho);
+        
+        // まずフォームのセレクトボックスに選択肢を読み込む処理を実行
+        // グループの値を設定し、それに基づいて大分類の選択肢を更新
+        const groupSelect = document.getElementById('group');
+        if (groupSelect) {
+            groupSelect.value = selectedGroup;
+            // 大分類の選択肢を更新するために、change イベントを発火
+            const event = new Event('change');
+            groupSelect.dispatchEvent(event);
+        }
+        
+        // 少し待ってから大分類の値を設定（選択肢が更新されるのを待つ）
+        setTimeout(() => {
+            const daiSelect = document.getElementById('majorCategory');
+            if (daiSelect) {
+                daiSelect.value = selectedDai;
+                // 中分類の選択肢を更新するために、change イベントを発火
+                const event = new Event('change');
+                daiSelect.dispatchEvent(event);
+            }
+            
+            // さらに少し待ってから中分類の値を設定
+            setTimeout(() => {
+                const chuSelect = document.getElementById('mediumCategory');
+                if (chuSelect) {
+                    chuSelect.value = selectedChu;
+                    // 小分類の選択肢を更新するために、change イベントを発火
+                    const event = new Event('change');
+                    chuSelect.dispatchEvent(event);
+                }
+                
+                // 最後に小分類の値を設定
+                setTimeout(() => {
+                    const shoSelect = document.getElementById('smallCategory');
+                    if (shoSelect) {
+                        shoSelect.value = selectedSho;
+                    }
+                    
+                    console.log('Final form values set:', 
+                        groupSelect ? groupSelect.value : 'not found',
+                        daiSelect ? daiSelect.value : 'not found',
+                        chuSelect ? chuSelect.value : 'not found',
+                        shoSelect ? shoSelect.value : 'not found'
+                    );
+                }, 100);
+            }, 100);
+        }, 100);
+        
+        // モーダルを閉じる
+        classificationModal.hide();
+    });
 });
 </script>
 """
@@ -1765,8 +1974,17 @@ document.addEventListener('DOMContentLoaded', function() {
         header()
         nav()
 
+        # 変数を直接置換した文字列を作成
+        final_regular_modal_html = regular_modal_html
+        
+        # 分類選択モーダルのHTMLを生成（選択肢を含む）
+        final_classification_modal_html = classification_modal_html.format(
+            group_options=group_options
+        )
+        
         print("""
-        {regular_modal_html}
+        {final_regular_modal_html}
+        {final_classification_modal_html}
         <div class="container my-4">
             <div class="row justify-content-center">
                 <div class="col-lg-10">
@@ -1856,7 +2074,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         {create_regular_js}
         
-        """.format(uuid=uuid, create_html=create_html, update_html=update_html, status_html=status_html, category_html=category_html, create_group_html=create_group_html, create_担当者_html=create_担当者_html, pinned_html=pinned_html, tags_html=tags_html, create_大分類_html=create_大分類_html, create_中分類_html=create_中分類_html, create_小分類_html=create_小分類_html, regular_html=regular_html, create_regular_js=create_regular_js, REQUEST_URL=REQUEST_URL, create_bg_class=create_bg_class, regular_modal_html=regular_modal_html))
+        """.format(uuid=uuid, create_html=create_html, update_html=update_html, status_html=status_html, category_html=category_html, create_group_html=create_group_html, create_担当者_html=create_担当者_html, pinned_html=pinned_html, tags_html=tags_html, create_大分類_html=create_大分類_html, create_中分類_html=create_中分類_html, create_小分類_html=create_小分類_html, regular_html=regular_html, create_regular_js=create_regular_js, REQUEST_URL=REQUEST_URL, create_bg_class=create_bg_class, final_regular_modal_html=final_regular_modal_html, final_classification_modal_html=final_classification_modal_html))
         
         print(TEMPLATE_MODAL_HTML_SCRIPT) # 先に関数定義を含むスクリプトを出力
         templates_json_data = json.dumps(load_templates())
