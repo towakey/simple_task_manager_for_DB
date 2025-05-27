@@ -1557,6 +1557,32 @@ document.addEventListener('DOMContentLoaded', function() {{
 </div>
 """
 
+        # Regularタイプ選択用モーダルHTML
+        regular_modal_html = """
+<div class="modal fade" id="regularTypeModal" tabindex="-1" aria-labelledby="regularTypeModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="regularTypeModalLabel">タスクタイプの選択</h5>
+      </div>
+      <div class="modal-body">
+        <p>作成するタスクのタイプを選択してください：</p>
+        <div class="d-grid gap-3">
+          <button type="button" class="btn btn-info btn-lg" id="selectRegularButton">
+            <i class="bi bi-calendar-check"></i> 定型タスク (Regular)
+            <div class="small text-start mt-2">繰り返し発生する標準的なタスク</div>
+          </button>
+          <button type="button" class="btn btn-warning btn-lg" id="selectIrregularButton">
+            <i class="bi bi-exclamation-triangle"></i> 非定型タスク (Irregular)
+            <div class="small text-start mt-2">特殊な対応が必要な一時的なタスク</div>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+"""
+
         # 背景色クラス（デフォルトは定型）
         create_bg_class = "bg-regular-task"
 
@@ -1709,6 +1735,29 @@ document.addEventListener('DOMContentLoaded', function() {
             cardElement.classList.add('bg-irregular-task');
         }
     });
+
+    // モーダルの準備
+    const regularTypeModal = new bootstrap.Modal(document.getElementById('regularTypeModal'));
+    
+    // ページ読み込み時にモーダルを表示
+    setTimeout(() => {
+        regularTypeModal.show();
+    }, 500);
+    
+    // モーダルのボタン処理
+    document.getElementById('selectRegularButton').addEventListener('click', function() {
+        regularSwitch.checked = true;
+        cardElement.classList.add('bg-regular-task');
+        cardElement.classList.remove('bg-irregular-task');
+        regularTypeModal.hide();
+    });
+    
+    document.getElementById('selectIrregularButton').addEventListener('click', function() {
+        regularSwitch.checked = false;
+        cardElement.classList.remove('bg-regular-task');
+        cardElement.classList.add('bg-irregular-task');
+        regularTypeModal.hide();
+    });
 });
 </script>
 """
@@ -1717,6 +1766,7 @@ document.addEventListener('DOMContentLoaded', function() {
         nav()
 
         print("""
+        {regular_modal_html}
         <div class="container my-4">
             <div class="row justify-content-center">
                 <div class="col-lg-10">
@@ -1806,7 +1856,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         {create_regular_js}
         
-        """.format(uuid=uuid, create_html=create_html, update_html=update_html, status_html=status_html, category_html=category_html, create_group_html=create_group_html, create_担当者_html=create_担当者_html, pinned_html=pinned_html, tags_html=tags_html, create_大分類_html=create_大分類_html, create_中分類_html=create_中分類_html, create_小分類_html=create_小分類_html, regular_html=regular_html, create_regular_js=create_regular_js, REQUEST_URL=REQUEST_URL, create_bg_class=create_bg_class))
+        """.format(uuid=uuid, create_html=create_html, update_html=update_html, status_html=status_html, category_html=category_html, create_group_html=create_group_html, create_担当者_html=create_担当者_html, pinned_html=pinned_html, tags_html=tags_html, create_大分類_html=create_大分類_html, create_中分類_html=create_中分類_html, create_小分類_html=create_小分類_html, regular_html=regular_html, create_regular_js=create_regular_js, REQUEST_URL=REQUEST_URL, create_bg_class=create_bg_class, regular_modal_html=regular_modal_html))
         
         print(TEMPLATE_MODAL_HTML_SCRIPT) # 先に関数定義を含むスクリプトを出力
         templates_json_data = json.dumps(load_templates())
