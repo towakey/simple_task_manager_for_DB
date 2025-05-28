@@ -61,6 +61,7 @@ update_大分類 = form.getfirst('update_大分類', '')
 update_中分類 = form.getfirst('update_中分類', '')
 update_小分類 = form.getfirst('update_小分類', '')
 update_regular = form.getfirst('update_regular', 'off') == 'on'  # スイッチの値を取得 (on/off)
+update_report_flag = form.getfirst('update_report_flag', 'off') == 'on'  # レポート対象チェックボックスの値を取得
 
 # 作成用
 create_task_id = form.getfirst('create_task_id', '')
@@ -78,6 +79,7 @@ create_大分類 = form.getfirst('create_大分類', '')
 create_中分類 = form.getfirst('create_中分類', '')
 create_小分類 = form.getfirst('create_小分類', '')
 create_regular = form.getfirst('create_regular', 'off') == 'on'  # スイッチの値を取得 (on/off)
+create_report_flag = form.getfirst('create_report_flag', 'off') == 'on'  # レポート対象チェックボックスの値を取得
 
 # 既存ヘルパを置き換え -------------------------------------------------------------
 def _row_to_detail(row):
@@ -897,6 +899,14 @@ if __name__ == '__main__':
     <label class="form-check-label" for="pinned">ピン止めする</label>
 </div>"""
 
+        # レポートフラグのチェックボックスのHTML
+        report_flag_checked = 'checked' if target_task_detail.get('report_flag', 0) == 1 else ''
+        report_flag_html = f"""
+<div class="form-check ms-3">
+    <input class="form-check-input" type="checkbox" id="report_flag" name="update_report_flag" {report_flag_checked}>
+    <label class="form-check-label" for="report_flag">レポート対象</label>
+</div>"""
+
         # 辞書型で渡された場合はタグ名のみを抽出
         def extract_tag_names(tags):
             if isinstance(tags, list):
@@ -1222,8 +1232,9 @@ document.addEventListener('DOMContentLoaded', function() {{
                                 </div>
                                 
                                 <div class="row mb-3">
-                                    <div class="col-md-6">
+                                    <div class="col-md-6 d-flex">
                                         {pinned_html}
+                                        {report_flag_html}
                                     </div>
                                 </div>
                                 
@@ -1291,7 +1302,8 @@ document.addEventListener('DOMContentLoaded', function() {{
             content=target_task_detail['content'], 
             create_regular_js=create_regular_js,
             REQUEST_URL=REQUEST_URL,
-            edit_bg_class=edit_bg_class
+            edit_bg_class=edit_bg_class,
+            report_flag_html=report_flag_html
         ))
         
         print(TEMPLATE_MODAL_HTML_SCRIPT) # 先に関数定義を含むスクリプトを出力
@@ -1431,6 +1443,7 @@ document.addEventListener('DOMContentLoaded', function() {{
             "中分類": update_中分類,
             "小分類": update_小分類,
             "regular": "Regular" if update_regular else "Irregular",
+            "report_flag": 1 if update_report_flag else 0,
             "content": update_content.replace('\r\n', '\n').replace('\r', '\n'),
             "tags": [t.strip() for t in update_tags.split(',') if t.strip()],
         }
@@ -1520,6 +1533,12 @@ document.addEventListener('DOMContentLoaded', function() {{
 <div class="form-check">
     <input class="form-check-input" type="checkbox" id="pinned" name="create_pinned">
     <label class="form-check-label" for="pinned">ピン止めする</label>
+</div>"""
+
+        report_flag_html = f"""
+<div class="form-check ms-3">
+    <input class="form-check-input" type="checkbox" id="report_flag" name="create_report_flag" value="1">
+    <label class="form-check-label" for="report_flag">レポート対象</label>
 </div>"""
 
         tags_html = f"""
@@ -2157,8 +2176,9 @@ document.addEventListener('DOMContentLoaded', function() {
                                 </div>
                                 
                                 <div class="row mb-3">
-                                    <div class="col-md-6">
+                                    <div class="col-md-6 d-flex">
                                         {pinned_html}
+                                        {report_flag_html}
                                     </div>
                                 </div>
                                 
@@ -2209,7 +2229,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         {create_regular_js}
         
-        """.format(uuid=uuid, create_html=create_html, update_html=update_html, status_html=status_html, category_html=category_html, create_group_html=create_group_html, create_担当者_html=create_担当者_html, pinned_html=pinned_html, tags_html=tags_html, create_大分類_html=create_大分類_html, create_中分類_html=create_中分類_html, create_小分類_html=create_小分類_html, regular_html=regular_html, create_regular_js=create_regular_js, REQUEST_URL=REQUEST_URL, create_bg_class=create_bg_class, final_regular_modal_html=final_regular_modal_html, final_classification_modal_html=final_classification_modal_html))
+        """.format(uuid=uuid, create_html=create_html, update_html=update_html, status_html=status_html, category_html=category_html, create_group_html=create_group_html, create_担当者_html=create_担当者_html, pinned_html=pinned_html, report_flag_html=report_flag_html, tags_html=tags_html, create_大分類_html=create_大分類_html, create_中分類_html=create_中分類_html, create_小分類_html=create_小分類_html, regular_html=regular_html, create_regular_js=create_regular_js, REQUEST_URL=REQUEST_URL, create_bg_class=create_bg_class, final_regular_modal_html=final_regular_modal_html, final_classification_modal_html=final_classification_modal_html))
         
         print(TEMPLATE_MODAL_HTML_SCRIPT) # 先に関数定義を含むスクリプトを出力
         templates_json_data = json.dumps(load_templates())
@@ -2234,6 +2254,7 @@ document.addEventListener('DOMContentLoaded', function() {
             "中分類": create_中分類,
             "小分類": create_小分類,
             "regular": "Regular" if create_regular else "Irregular",
+            "report_flag": 1 if create_report_flag else 0,
             "content": create_content.replace('\r\n', '\n').replace('\r', '\n'),
             # タグはカンマ区切り文字列→リストへ変換し、空要素除外
             "tags": [t.strip() for t in create_tags.split(',') if t.strip()],

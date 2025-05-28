@@ -75,6 +75,7 @@ def init_db() -> None:
                 中分類 TEXT,
                 小分類 TEXT,
                 regular TEXT DEFAULT 'Regular',
+                report_flag INTEGER NOT NULL DEFAULT 0,
                 content TEXT,
                 tags TEXT
             )
@@ -82,7 +83,7 @@ def init_db() -> None:
         )
         conn.execute("CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status)")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_tasks_pinned ON tasks(pinned)")
-
+        
 
 def insert(task: Dict[str, Any]) -> str:
     """Insert a task. Returns the task id (generated if missing)."""
@@ -107,6 +108,7 @@ def insert(task: Dict[str, Any]) -> str:
         "中分類": task.get("中分類"),
         "小分類": task.get("小分類"),
         "regular": task.get("regular", "Regular"),
+        "report_flag": int(bool(task.get("report_flag", False))),
         "content": task.get("content", ""),
         "tags": ",".join(task.get("tags", [])) if isinstance(task.get("tags"), list) else task.get("tags", ""),
     }
@@ -116,10 +118,10 @@ def insert(task: Dict[str, Any]) -> str:
             """
             INSERT INTO tasks (
                 id,name,status,create_date,update_date,complete_date,
-                pinned,category,group_category,担当者,大分類,中分類,小分類,regular,content,tags
+                pinned,category,group_category,担当者,大分類,中分類,小分類,regular,report_flag,content,tags
             ) VALUES (
                 :id,:name,:status,:create_date,:update_date,:complete_date,
-                :pinned,:category,:group_category,:担当者,:大分類,:中分類,:小分類,:regular,:content,:tags
+                :pinned,:category,:group_category,:担当者,:大分類,:中分類,:小分類,:regular,:report_flag,:content,:tags
             )
             """,
             data,
