@@ -1664,6 +1664,28 @@ document.addEventListener('DOMContentLoaded', function() {{
               </select>
             </div>
           </div>
+          
+          <!-- テンプレート表示エリア -->
+          <div id="modalTemplateArea" class="mt-4 pt-3 border-top d-none">
+            <h5><i class="bi bi-file-earmark-text"></i> マッチするテンプレート</h5>
+            <div class="row mb-3">
+              <div class="col-12">
+                <div class="form-group">
+                  <label for="modalTemplateName" class="form-label">テンプレート名</label>
+                  <input type="text" id="modalTemplateName" class="form-control" readonly>
+                </div>
+              </div>
+            </div>
+            <div class="row mb-3">
+              <div class="col-12">
+                <div class="form-group">
+                  <label for="modalTemplateContent" class="form-label">テンプレート内容</label>
+                  <textarea id="modalTemplateContent" class="form-control" rows="6" readonly></textarea>
+                </div>
+              </div>
+            </div>
+            <div id="modalTemplateInputsContainer" class="mb-3"></div>
+          </div>
         </form>
       </div>
       <div class="modal-footer">
@@ -1847,7 +1869,11 @@ document.addEventListener('DOMContentLoaded', function() {
         regularTypeModal.hide();
         // 定型タスクを選択した場合は分類モーダルを表示
         setTimeout(() => {
+            // 分類モーダルを表示する前に初期化処理を実行
+            initClassificationModal();
             classificationModal.show();
+            // モーダル表示後に一度テンプレート検索を実行
+            setTimeout(searchTemplateOnClassificationChange, 300);
         }, 500);
     });
     
@@ -2001,8 +2027,29 @@ document.addEventListener('DOMContentLoaded', function() {
                         shoSelect ? shoSelect.value : 'not found'
                     );
                     
-                    // 選択した分類に一致するテンプレートを探す
-                    findMatchingTemplate(selectedGroup, selectedDai, selectedChu, selectedSho);
+                    // テンプレートが選択されている場合は自動的にテンプレートを適用
+                    if (window.currentMatchingTemplate) {
+                        console.log('Applying template:', window.currentMatchingTemplate.name);
+                        
+                        // タスク内容フィールドにテンプレートの内容を適用
+                        const contentTextarea = document.getElementById('content_create');
+                        if (contentTextarea) {
+                            let templateContent = window.currentMatchingTemplate.contents;
+                            
+                            // 入力フィールドが存在する場合、その値でプレースホルダーを置き換え
+                            if (window.currentMatchingTemplate.input_contents && window.currentMatchingTemplate.input_contents.length > 0) {
+                                window.currentMatchingTemplate.input_contents.forEach(function(inputItem) {
+                                    const inputField = document.getElementById('modal_template_input_' + inputItem.input_name);
+                                    if (inputField && inputField.value) {
+                                        const placeholder = new RegExp('\\{' + inputItem.input_name + '\\}', 'g');
+                                        templateContent = templateContent.replace(placeholder, inputField.value);
+                                    }
+                                });
+                            }
+                            
+                            contentTextarea.value = templateContent;
+                        }
+                    }
                 }, 100);
             }, 100);
         }, 100);
@@ -2010,6 +2057,129 @@ document.addEventListener('DOMContentLoaded', function() {
         // モーダルを閉じる
         classificationModal.hide();
     });
+    
+    // 分類モーダル初期化処理
+    function initClassificationModal() {
+        // 各セレクトボックスにイベントリスナーを追加
+        document.getElementById('modalGroup').addEventListener('change', function() {
+            // 大分類更新処理はインライン属性で設定済み
+            // 変更後にテンプレート検索を実行
+            setTimeout(searchTemplateOnClassificationChange, 50);
+        });
+        
+        document.getElementById('modalDai').addEventListener('change', function() {
+            // 中分類更新処理はインライン属性で設定済み
+            // 変更後にテンプレート検索を実行
+            setTimeout(searchTemplateOnClassificationChange, 50);
+        });
+        
+        document.getElementById('modalChu').addEventListener('change', function() {
+            // 小分類更新処理はインライン属性で設定済み
+            // 変更後にテンプレート検索を実行
+            setTimeout(searchTemplateOnClassificationChange, 50);
+        });
+        
+        document.getElementById('modalSho').addEventListener('change', function() {
+            // 変更後にテンプレート検索を実行
+            setTimeout(searchTemplateOnClassificationChange, 50);
+        });
+    }
+
+    // 分類選択時にリアルタイムでテンプレートを検索する関数
+    function searchTemplateOnClassificationChange() {
+        // 現在選択されている分類を取得
+        const selectedGroup = document.getElementById('modalGroup').value;
+        const selectedDai = document.getElementById('modalDai').value;
+        const selectedChu = document.getElementById('modalChu').value;
+        const selectedSho = document.getElementById('modalSho').value;
+        
+        console.log('Searching for template matching:', selectedGroup, selectedDai, selectedChu, selectedSho);
+        
+        // テンプレートの検索 - すべての値が完全一致するテンプレートのみを表示
+        let matchingTemplate = null;
+        
+        // すべての分類（グループ、大分類、中分類、小分類）が選択されている場合のみテンプレートを探す
+        if (selectedGroup && selectedDai && selectedChu && selectedSho) {
+            matchingTemplate = allTemplates.find(template => {
+                return template.group === selectedGroup && 
+                       template.大分類 === selectedDai && 
+                       template.中分類 === selectedChu && 
+                       template.小分類 === selectedSho;
+            });
+        }
+        
+        // テンプレート表示エリアを取得
+        const templateArea = document.getElementById('modalTemplateArea');
+        const templateName = document.getElementById('modalTemplateName');
+        const templateContent = document.getElementById('modalTemplateContent');
+        const templateInputsContainer = document.getElementById('modalTemplateInputsContainer');
+        
+        // テンプレートが見つかった場合の処理
+        if (matchingTemplate) {
+            console.log('Found matching template:', matchingTemplate.name);
+            templateArea.classList.remove('d-none');
+            templateName.value = matchingTemplate.name;
+            templateContent.value = matchingTemplate.contents;
+            
+            // 入力フィールドを表示
+            templateInputsContainer.innerHTML = '';
+            
+            if (matchingTemplate.input_contents && matchingTemplate.input_contents.length > 0) {
+                matchingTemplate.input_contents.forEach(function(inputItem) {
+                    const formGroup = document.createElement('div');
+                    formGroup.classList.add('mb-3');
+                    
+                    const label = document.createElement('label');
+                    label.classList.add('form-label');
+                    label.textContent = inputItem.input_name;
+                    formGroup.appendChild(label);
+                    
+                    let input;
+                    
+                    if (inputItem.type === 'select' && inputItem.options) {
+                        input = document.createElement('select');
+                        input.classList.add('form-select');
+                        
+                        inputItem.options.forEach(function(optionText) {
+                            const option = document.createElement('option');
+                            option.value = optionText;
+                            option.textContent = optionText;
+                            input.appendChild(option);
+                        });
+                    } else if (inputItem.type === 'number') {
+                        input = document.createElement('input');
+                        input.type = 'number';
+                        input.classList.add('form-control');
+                    } else {
+                        input = document.createElement('input');
+                        input.type = 'text';
+                        input.classList.add('form-control');
+                    }
+                    
+                    input.id = 'modal_template_input_' + inputItem.input_name;
+                    input.dataset.inputName = inputItem.input_name;
+                    formGroup.appendChild(input);
+                    templateInputsContainer.appendChild(formGroup);
+                });
+            }
+            
+            // 現在のテンプレートを保存
+            window.currentMatchingTemplate = matchingTemplate;
+        } else {
+            // テンプレートが見つからない場合は非表示
+            templateArea.classList.add('d-none');
+            templateName.value = '';
+            templateContent.value = '';
+            templateInputsContainer.innerHTML = '';
+            window.currentMatchingTemplate = null;
+        }
+    }
+    
+    // 分類モーダルの各セレクトボックスにchangeイベントを設定
+    document.getElementById('modalGroup').addEventListener('change', searchTemplateOnClassificationChange);
+    document.getElementById('modalDai').addEventListener('change', searchTemplateOnClassificationChange);
+    document.getElementById('modalChu').addEventListener('change', searchTemplateOnClassificationChange);
+    document.getElementById('modalSho').addEventListener('change', searchTemplateOnClassificationChange);
     
     // 選択された分類に一致するテンプレートを探して表示する関数
     function findMatchingTemplate(group, dai, chu, sho) {
