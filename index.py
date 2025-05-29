@@ -1680,7 +1680,7 @@ document.addEventListener('DOMContentLoaded', function() {{
               <div class="col-12">
                 <div class="form-group">
                   <label for="modalTemplateContent" class="form-label">テンプレート内容</label>
-                  <textarea id="modalTemplateContent" class="form-control" rows="6" readonly></textarea>
+                  <textarea id="modalTemplateContent" class="form-control" rows="6"></textarea>
                 </div>
               </div>
             </div>
