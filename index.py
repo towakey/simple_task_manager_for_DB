@@ -2038,14 +2038,17 @@ document.addEventListener('DOMContentLoaded', function() {
                             
                             // 入力フィールドが存在する場合、その値でプレースホルダーを置き換え
                             if (window.currentMatchingTemplate.input_contents && window.currentMatchingTemplate.input_contents.length > 0) {
+                                console.log('Applying template input:', window.currentMatchingTemplate.input_contents);
                                 window.currentMatchingTemplate.input_contents.forEach(function(inputItem) {
                                     const inputField = document.getElementById('modal_template_input_' + inputItem.input_name);
                                     if (inputField && inputField.value) {
-                                        const placeholder = new RegExp('\\{' + inputItem.input_name + '\\}', 'g');
-                                        templateContent = templateContent.replace(placeholder, inputField.value);
+                                        console.log('Found input field:', inputField.id, inputField.value);
+                                        // テンプレートの内容の後ろに入力フィールドの名前と値を改行して追加
+                                        templateContent = templateContent + '\\n' + inputItem.input_name.replace("input_","") + ':' + inputField.value;
                                     }
                                 });
                             }
+                            console.log('Applying template content:', templateContent);
                             
                             contentTextarea.value = templateContent;
                         }
