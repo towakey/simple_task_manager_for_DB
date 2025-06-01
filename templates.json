@@ -4,12 +4,13 @@
     "contents": "今日行った作業内容：\n気づいた点：\n明日の予定：",
     "input_contents": [
       {"input_name": "作業時間", "type": "text"},
-      {"input_name": "進捗度", "type": "number"}
+      {"input_name": "進捗度", "type": "number"},
+      {"input_name": "確認済み", "type": "checkbox"}
     ],
-    "group": "業務報告",
-    "大分類": "日次報告",
-    "中分類": "定例業務",
-    "小分類": "日報"
+    "group": "グループA",
+    "大分類": "大分類1",
+    "中分類": "中分類1",
+    "小分類": "小分類1"
   },
   {
     "name": "バグ報告テンプレート",

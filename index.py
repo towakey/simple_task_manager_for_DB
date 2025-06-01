@@ -487,6 +487,8 @@ TEMPLATE_MODAL_HTML_SCRIPT = r"""
         templateSelect.appendChild(option);
       });
     }
+    
+    // テンプレート選択時の処理
     templateSelect.addEventListener('change', function() {
       const selectedIndex = this.value;
       templateInputsContainer.innerHTML = '';
@@ -494,41 +496,70 @@ TEMPLATE_MODAL_HTML_SCRIPT = r"""
         templateContents.value = '';
         return;
       }
+      
+      // テンプレートを取得
       const selectedTemplate = allTemplates[selectedIndex];
       templateContents.value = selectedTemplate.contents;
-      if (selectedTemplate.input_contents) {
+      
+      console.log('選択されたテンプレート:', selectedTemplate.name);
+      
+      // 入力フィールドを生成
+      if (selectedTemplate.input_contents && Array.isArray(selectedTemplate.input_contents)) {
+        // すべての入力項目を一度にHTMLとして生成
+        let allFieldsHtml = '';
+        
         selectedTemplate.input_contents.forEach(function(inputItem) {
-          const formGroup = document.createElement('div');
-          formGroup.classList.add('mb-3');
-          const label = document.createElement('label');
-          label.classList.add('form-label');
-          label.textContent = inputItem.input_name;
-          formGroup.appendChild(label);
-          if (inputItem.type === 'textarea') {
-            const textarea = document.createElement('textarea');
-            textarea.classList.add('form-control');
-            textarea.dataset.inputName = inputItem.input_name;
-            formGroup.appendChild(textarea);
-          } else if (inputItem.type === 'select' && inputItem.options) {
-            const select = document.createElement('select');
-            select.classList.add('form-select');
-            select.dataset.inputName = inputItem.input_name;
-            inputItem.options.forEach(function(opt) {
-              const optionElement = document.createElement('option');
-              optionElement.value = opt;
-              optionElement.textContent = opt;
-              select.appendChild(optionElement);
-            });
-            formGroup.appendChild(select);
-          } else {
-            const input = document.createElement('input');
-            input.type = inputItem.type || 'text';
-            input.classList.add('form-control');
-            input.dataset.inputName = inputItem.input_name;
-            formGroup.appendChild(input);
+          console.log('入力項目:', inputItem.input_name, 'タイプ:', inputItem.type);
+          
+          // チェックボックス用HTML
+          if (inputItem.type === 'checkbox') {
+            allFieldsHtml += `
+              <div class="mb-3">
+                <div class="form-check form-switch">
+                  <input type="checkbox" class="form-check-input" id="modal_template_input_${inputItem.input_name}" data-input-name="${inputItem.input_name}">
+                  <label class="form-check-label" for="modal_template_input_${inputItem.input_name}">${inputItem.input_name}</label>
+                </div>
+              </div>
+            `;
           }
-          templateInputsContainer.appendChild(formGroup);
+          // テキストエリア用HTML
+          else if (inputItem.type === 'textarea') {
+            allFieldsHtml += `
+              <div class="mb-3">
+                <label class="form-label">${inputItem.input_name}</label>
+                <textarea class="form-control" id="modal_template_input_${inputItem.input_name}" data-input-name="${inputItem.input_name}"></textarea>
+              </div>
+            `;
+          }
+          // セレクト用HTML
+          else if (inputItem.type === 'select' && inputItem.options) {
+            let optionsHtml = '';
+            inputItem.options.forEach(function(opt) {
+              optionsHtml += `<option value="${opt}">${opt}</option>`;
+            });
+            
+            allFieldsHtml += `
+              <div class="mb-3">
+                <label class="form-label">${inputItem.input_name}</label>
+                <select class="form-select" id="modal_template_input_${inputItem.input_name}" data-input-name="${inputItem.input_name}">${optionsHtml}</select>
+              </div>
+            `;
+          }
+          // その他の入力タイプ用HTML
+          else {
+            const inputType = inputItem.type || 'text';
+            allFieldsHtml += `
+              <div class="mb-3">
+                <label class="form-label">${inputItem.input_name}</label>
+                <input type="${inputType}" class="form-control" id="modal_template_input_${inputItem.input_name}" data-input-name="${inputItem.input_name}">
+              </div>
+            `;
+          }
         });
+        
+        // すべての入力フィールドを一度に挿入
+        templateInputsContainer.innerHTML = allFieldsHtml;
+        console.log('生成されたフォーム:', allFieldsHtml);
       }
     });
     applyTemplateButton.addEventListener('click', function() {
@@ -536,8 +567,20 @@ TEMPLATE_MODAL_HTML_SCRIPT = r"""
       if (!targetTextarea) return;
       let combinedContent = templateContents.value;
       const inputs = templateInputsContainer.querySelectorAll('[data-input-name]');
+      
       inputs.forEach(function(input) {
-        combinedContent += "\n" + input.dataset.inputName + ": " + input.value;
+        // 入力タイプに応じた値の取得
+        let inputValue;
+        
+        // チェックボックスの場合
+        if (input.type === 'checkbox') {
+          inputValue = input.checked ? 'はい' : 'いいえ'; // チェック有無を「はい/いいえ」で表示
+          console.log('チェックボックス値:', input.dataset.inputName, inputValue);
+        } else {
+          inputValue = input.value;
+        }
+        
+        combinedContent += "\n" + input.dataset.inputName + ": " + inputValue;
       });
       targetTextarea.value += "\n" + combinedContent;
       
@@ -2043,8 +2086,16 @@ document.addEventListener('DOMContentLoaded', function() {
                                     const inputField = document.getElementById('modal_template_input_' + inputItem.input_name);
                                     if (inputField && inputField.value) {
                                         console.log('Found input field:', inputField.id, inputField.value);
+                                        let inputValue;
+                                        // チェックボックスの場合、チェック状態に応じて「はい/いいえ」を設定
+                                        if (inputField.type === 'checkbox') {
+                                            inputValue = inputField.checked ? 'はい' : 'いいえ';
+                                            console.log('Checkbox value:', inputItem.input_name, inputValue);
+                                        } else {
+                                            inputValue = inputField.value;
+                                        }
                                         // テンプレートの内容の後ろに入力フィールドの名前と値を改行して追加
-                                        templateContent = templateContent + '\\n' + inputItem.input_name.replace("input_","") + ':' + inputField.value;
+                                        templateContent = templateContent + '\\n' + inputItem.input_name.replace("input_","") + ':' + inputValue;
                                     }
                                 });
                             }
@@ -2127,46 +2178,26 @@ document.addEventListener('DOMContentLoaded', function() {
             // 入力フィールドを表示
             templateInputsContainer.innerHTML = '';
             
+            console.log('Template input contents:', matchingTemplate.input_contents);
+            
             if (matchingTemplate.input_contents && matchingTemplate.input_contents.length > 0) {
                 matchingTemplate.input_contents.forEach(function(inputItem) {
                     const formGroup = document.createElement('div');
                     formGroup.classList.add('mb-3');
                     
-                    const label = document.createElement('label');
-                    label.classList.add('form-label');
-                    label.textContent = inputItem.input_name;
-                    formGroup.appendChild(label);
-                    
-                    let input;
-                    
-                    if (inputItem.type === 'select' && inputItem.options) {
-                        input = document.createElement('select');
-                        input.classList.add('form-select');
-                        
-                        inputItem.options.forEach(function(optionText) {
-                            const option = document.createElement('option');
-                            option.value = optionText;
-                            option.textContent = optionText;
-                            input.appendChild(option);
-                        });
-                    } else if (inputItem.type === 'number') {
-                        input = document.createElement('input');
-                        input.type = 'number';
-                        input.classList.add('form-control');
-                    } else {
-                        input = document.createElement('input');
-                        input.type = 'text';
-                        input.classList.add('form-control');
+                    // チェックボックスの場合はinnerHTMLでスイッチスタイルの要素を生成
+                    if (inputItem.type === 'checkbox') {
+                        formGroup.innerHTML = `
+                            <div class="form-check form-switch">
+                                <input type="checkbox" class="form-check-input" id="modal_template_input_${inputItem.input_name}" data-input-name="${inputItem.input_name}">
+                                <label class="form-check-label" for="modal_template_input_${inputItem.input_name}">${inputItem.input_name}</label>
+                            </div>
+                        `;
+                        templateInputsContainer.appendChild(formGroup);
+                        return; // このアイテムの処理を終了
                     }
-                    
-                    input.id = 'modal_template_input_' + inputItem.input_name;
-                    input.dataset.inputName = inputItem.input_name;
-                    formGroup.appendChild(input);
-                    templateInputsContainer.appendChild(formGroup);
                 });
             }
-            
-            // 現在のテンプレートを保存
             window.currentMatchingTemplate = matchingTemplate;
         } else {
             // テンプレートが見つからない場合は非表示
@@ -2274,6 +2305,39 @@ document.addEventListener('DOMContentLoaded', function() {
                             input = document.createElement('input');
                             input.type = 'number';
                             input.classList.add('form-control');
+                        } else if (inputItem.type === 'checkbox') {
+                            // Bootstrapのフォームスイッチ用のラッパーを作成
+                            const wrapper = document.createElement('div');
+                            wrapper.classList.add('form-check', 'form-switch');
+                            
+                            // チェックボックス入力を作成
+                            input = document.createElement('input');
+                            input.type = 'checkbox';
+                            input.classList.add('form-check-input');
+                            // 固有IDを設定
+                            const uniqueId = 'checkbox_' + Math.random().toString(36).substr(2, 9);
+                            input.id = uniqueId;
+                            
+                            // ラベルをチェックボックスに関連付け
+                            const checkboxLabel = document.createElement('label');
+                            checkboxLabel.classList.add('form-check-label');
+                            checkboxLabel.setAttribute('for', uniqueId);
+                            checkboxLabel.textContent = inputItem.input_name;
+                            
+                            // ラッパーにチェックボックスとラベルを追加
+                            wrapper.appendChild(input);
+                            wrapper.appendChild(checkboxLabel);
+                            
+                            // 元のフォームグループにラッパーを追加
+                            formGroup.innerHTML = '';
+                            formGroup.appendChild(wrapper);
+                            
+                            // input要素のIDを設定
+                            input.id = 'template_input_' + inputItem.input_name;
+                            input.dataset.inputName = inputItem.input_name;
+                            
+                            // チェックボックスを処理したので、この後の処理をスキップ
+                            return;
                         } else {
                             input = document.createElement('input');
                             input.type = 'text';
