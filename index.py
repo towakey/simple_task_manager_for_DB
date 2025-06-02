@@ -2155,10 +2155,11 @@ document.addEventListener('DOMContentLoaded', function() {
         // すべての分類（グループ、大分類、中分類、小分類）が選択されている場合のみテンプレートを探す
         if (selectedGroup && selectedDai && selectedChu && selectedSho) {
             matchingTemplate = allTemplates.find(template => {
-                return template.group === selectedGroup && 
-                       template.大分類 === selectedDai && 
-                       template.中分類 === selectedChu && 
-                       template.小分類 === selectedSho;
+                // 配列になった分類情報に対応するため、includesメソッドを使用してチェック
+                return Array.isArray(template.group) && template.group.includes(selectedGroup) && 
+                       Array.isArray(template.大分類) && template.大分類.includes(selectedDai) && 
+                       Array.isArray(template.中分類) && template.中分類.includes(selectedChu) && 
+                       Array.isArray(template.小分類) && template.小分類.includes(selectedSho);
             });
         }
         
