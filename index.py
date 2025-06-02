@@ -2083,19 +2083,41 @@ document.addEventListener('DOMContentLoaded', function() {
                             if (window.currentMatchingTemplate.input_contents && window.currentMatchingTemplate.input_contents.length > 0) {
                                 console.log('Applying template input:', window.currentMatchingTemplate.input_contents);
                                 window.currentMatchingTemplate.input_contents.forEach(function(inputItem) {
-                                    const inputField = document.getElementById('modal_template_input_' + inputItem.input_name);
-                                    if (inputField && inputField.value) {
-                                        console.log('Found input field:', inputField.id, inputField.value);
-                                        let inputValue;
-                                        // チェックボックスの場合、チェック状態に応じて「はい/いいえ」を設定
-                                        if (inputField.type === 'checkbox') {
-                                            inputValue = inputField.checked ? 'はい' : 'いいえ';
-                                            console.log('Checkbox value:', inputItem.input_name, inputValue);
-                                        } else {
-                                            inputValue = inputField.value;
-                                        }
+                                    let inputValue = '';
+                                    
+                                    // checkbox_with_textタイプの場合の処理
+                                    if (inputItem.type === 'checkbox_with_text') {
+                                        const checkboxField = document.getElementById('modal_template_input_checkbox_' + inputItem.input_name);
+                                        const textField = document.getElementById('modal_template_input_text_' + inputItem.input_name);
+                                        
+                                        let checkValue = checkboxField && checkboxField.checked ? 'はい' : 'いいえ';
+                                        let textValue = textField && textField.value ? textField.value : '';
+                                        
+                                        console.log('Checkbox with text values:', inputItem.input_name, checkValue, textValue);
+                                        
+                                        // チェックボックスとテキストの両方の値を組み合わせる
+                                        inputValue = checkValue + (textValue ? ' (' + textValue + ')' : '');
+                                        
                                         // テンプレートの内容の後ろに入力フィールドの名前と値を改行して追加
-                                        templateContent = templateContent + '\\n' + inputItem.input_name.replace("input_","") + ':' + inputValue;
+                                        templateContent = templateContent + '\\n' + inputItem.input_name + ':' + inputValue;
+                                    } 
+                                    // 通常の入力フィールドの場合
+                                    else {
+                                        const inputField = document.getElementById('modal_template_input_' + inputItem.input_name);
+                                        if (inputField && inputField.value) {
+                                            console.log('Found input field:', inputField.id, inputField.value);
+                                            
+                                            // チェックボックスの場合、チェック状態に応じて「はい/いいえ」を設定
+                                            if (inputField.type === 'checkbox') {
+                                                inputValue = inputField.checked ? 'はい' : 'いいえ';
+                                                console.log('Checkbox value:', inputItem.input_name, inputValue);
+                                            } else {
+                                                inputValue = inputField.value;
+                                            }
+                                            
+                                            // テンプレートの内容の後ろに入力フィールドの名前と値を改行して追加
+                                            templateContent = templateContent + '\\n' + inputItem.input_name.replace("input_","") + ':' + inputValue;
+                                        }
                                     }
                                 });
                             }
@@ -2195,6 +2217,23 @@ document.addEventListener('DOMContentLoaded', function() {
                             </div>
                         `;
                     } 
+                    // テキスト付きチェックボックスの場合
+                    else if (inputItem.type === 'checkbox_with_text') {
+                        formGroup.innerHTML = `
+                            <div class="mb-2">
+                                <label class="form-label">${inputItem.input_name}</label>
+                            </div>
+                            <div class="d-flex">
+                                <div class="form-check form-switch me-3">
+                                    <input type="checkbox" class="form-check-input" id="modal_template_input_checkbox_${inputItem.input_name}" data-input-name="${inputItem.input_name}_checkbox">
+                                    <label class="form-check-label" for="modal_template_input_checkbox_${inputItem.input_name}">チェック</label>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <input type="text" class="form-control" id="modal_template_input_text_${inputItem.input_name}" data-input-name="${inputItem.input_name}_text" placeholder="${inputItem.text_label || 'テキストを入力'}">
+                                </div>
+                            </div>
+                        `;
+                    }
                     // テキストエリアの場合
                     else if (inputItem.type === 'textarea') {
                         formGroup.innerHTML = `
