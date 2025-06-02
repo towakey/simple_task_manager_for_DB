@@ -2193,9 +2193,36 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <label class="form-check-label" for="modal_template_input_${inputItem.input_name}">${inputItem.input_name}</label>
                             </div>
                         `;
-                        templateInputsContainer.appendChild(formGroup);
-                        return; // このアイテムの処理を終了
+                    } 
+                    // テキストエリアの場合
+                    else if (inputItem.type === 'textarea') {
+                        formGroup.innerHTML = `
+                            <label class="form-label">${inputItem.input_name}</label>
+                            <textarea class="form-control" id="modal_template_input_${inputItem.input_name}" data-input-name="${inputItem.input_name}"></textarea>
+                        `;
                     }
+                    // セレクトの場合
+                    else if (inputItem.type === 'select' && inputItem.options) {
+                        let optionsHtml = '';
+                        inputItem.options.forEach(function(opt) {
+                            optionsHtml += `<option value="${opt}">${opt}</option>`;
+                        });
+                        
+                        formGroup.innerHTML = `
+                            <label class="form-label">${inputItem.input_name}</label>
+                            <select class="form-select" id="modal_template_input_${inputItem.input_name}" data-input-name="${inputItem.input_name}">${optionsHtml}</select>
+                        `;
+                    }
+                    // その他の入力タイプ（テキストなど）
+                    else {
+                        const inputType = inputItem.type || 'text';
+                        formGroup.innerHTML = `
+                            <label class="form-label">${inputItem.input_name}</label>
+                            <input type="${inputType}" class="form-control" id="modal_template_input_${inputItem.input_name}" data-input-name="${inputItem.input_name}">
+                        `;
+                    }
+                    
+                    templateInputsContainer.appendChild(formGroup);
                 });
             }
             window.currentMatchingTemplate = matchingTemplate;
