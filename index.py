@@ -2158,7 +2158,13 @@ document.addEventListener('DOMContentLoaded', function() {
                                         const checkboxField = document.getElementById('modal_template_input_checkbox_' + inputItem.input_name);
                                         const textField = document.getElementById('modal_template_input_text_' + inputItem.input_name);
                                         
-                                        let checkValue = checkboxField && checkboxField.checked ? 'はい' : 'いいえ';
+                                        // テンプレートで定義されたカスタムテキストがあれば使用、なければデフォルト値を使用
+                                        let checkValue = '';
+                                        if (checkboxField && checkboxField.checked) {
+                                            checkValue = inputItem.checked_text || 'はい';
+                                        } else {
+                                            checkValue = inputItem.unchecked_text || 'いいえ';
+                                        }
                                         let textValue = textField && textField.value ? textField.value : '';
                                         
                                         console.log('Checkbox with text values:', inputItem.input_name, checkValue, textValue);
@@ -2177,7 +2183,12 @@ document.addEventListener('DOMContentLoaded', function() {
                                             
                                             // チェックボックスの場合、チェック状態に応じて「はい/いいえ」を設定
                                             if (inputField.type === 'checkbox') {
-                                                inputValue = inputField.checked ? 'はい' : 'いいえ';
+                                                // テンプレートで定義されたカスタムテキストがあれば使用、なければデフォルト値を使用
+                                                if (inputField.checked) {
+                                                    inputValue = inputItem.checked_text || 'はい';
+                                                } else {
+                                                    inputValue = inputItem.unchecked_text || 'いいえ';
+                                                }
                                                 console.log('Checkbox value:', inputItem.input_name, inputValue);
                                             } else {
                                                 inputValue = inputField.value;

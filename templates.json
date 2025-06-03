@@ -5,8 +5,9 @@
     "input_contents": [
       {"input_name": "作業時間", "type": "text"},
       {"input_name": "進捗度", "type": "number"},
-      {"input_name": "確認済み", "type": "checkbox"},
-      {"input_name": "追跡状況", "type": "checkbox_with_text", "text_label": "詳細"}
+      {"input_name": "確認済み", "type": "checkbox", "checked_text": "確認済", "unchecked_text": "未確認"},
+      {"input_name": "追跡状況", "type": "checkbox_with_text", "text_label": "詳細", "checked_text": "追跡中", "unchecked_text": "追跡なし"},
+      {"input_name": "状況", "type": "checkbox_with_text", "text_label": "てすと"}
     ],
     "group": ["グループA", "グループC"],
     "大分類": ["大分類1", "大分類3"],
@@ -18,7 +19,7 @@
     "contents": "発生バージョン：\n再現手順：\n期待される結果：\n実際の結果：",
     "input_contents": [
       {"input_name": "重要度", "type": "select", "options": ["高", "中", "低"]},
-      {"input_name": "追跡状況", "type": "checkbox_with_text", "text_label": "詳細"}
+      {"input_name": "追跡状況", "type": "checkbox_with_text", "text_label": "詳細", "checked_text": "追跡中", "unchecked_text": "追跡なし"}
     ],
     "group": ["開発業務"],
     "大分類": ["品質管理", "開発管理"],
