@@ -1,0 +1,30 @@
+[
+  {
+    "name": "山田太郎",
+    "department": "営業部"
+  },
+  {
+    "name": "佐藤花子",
+    "department": "開発部"
+  },
+  {
+    "name": "鈴木一郎",
+    "department": "管理部"
+  },
+  {
+    "name": "高橋雅人",
+    "department": "営業部"
+  },
+  {
+    "name": "伊藤さくら",
+    "department": "開発部"
+  },
+  {
+    "name": "渡辺健太",
+    "department": "品質管理部"
+  },
+  {
+    "name": "小林大輔",
+    "department": "管理部"
+  }
+]

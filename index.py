@@ -14,6 +14,27 @@ import csv
 import json
 import db
 
+def parse_datetime_flexible(date_str):
+    """複数の日時形式に対応できるよう柔軟にパースする関数
+    
+    秒なし形式（YYYY-MM-DDThh:mm）と秒あり形式（YYYY-MM-DDThh:mm:ss）の両方に対応
+    """
+    if not date_str:
+        return ''
+        
+    # 秒なしフォーマット（YYYY-MM-DDThh:mm）の場合は秒を追加
+    if re.match(r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$', date_str):
+        date_str = date_str + ':00'
+        
+    try:
+        # 標準のISO形式としてパース
+        dt = datetime.datetime.strptime(date_str, '%Y-%m-%dT%H:%M:%S')
+        return dt.strftime('%Y-%m-%dT%H:%M:%S')
+    except ValueError:
+        # パースに失敗した場合は元の文字列をそのまま返す
+        print(f"日時パースエラー: {date_str}")
+        return date_str
+
 app_name = "simple_task_manager_for_DB"
 
 str_code = "utf-8"
@@ -856,9 +877,9 @@ if __name__ == '__main__':
                         file=task['id'],
                         task_name=task['detail']['name'],
                         pin_icon_div=pin_icon_div,
-                        incident=datetime.datetime.strptime(task['detail'].get('発生日', task['detail']['create_date']), '%Y-%m-%dT%H:%M:%S').strftime('%Y-%m-%dT%H:%M:%S'),
-                        update=datetime.datetime.strptime(task['detail']['update_date'], '%Y-%m-%dT%H:%M:%S').strftime('%Y-%m-%dT%H:%M:%S'),
-                        complete=(datetime.datetime.strptime(task['detail']['complete_date'], '%Y-%m-%dT%H:%M:%S').strftime('%Y-%m-%dT%H:%M:%S') if task['detail'].get('complete_date') else ''),
+                        incident=parse_datetime_flexible(task['detail'].get('発生日', task['detail']['create_date'])),
+                        update=parse_datetime_flexible(task['detail']['update_date']),
+                        complete=(parse_datetime_flexible(task['detail']['complete_date']) if task['detail'].get('complete_date') else ''),
                         content=task['detail']['content'].replace('\n', '<br>'),
                         status=task['detail']['status'],
                         category=task['detail']['category'],
@@ -1555,11 +1576,34 @@ document.addEventListener('DOMContentLoaded', function() {{
         # 開始時間をdatetime-local形式に変換（YYYY-MM-DDThh:mm）
         datetime_local_format = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M')
         
+        # JavaScriptで時間形式を処理する機能を追加
+        datetime_fix_script = """
+<script>
+// タスク作成フォーム送信時に日時データに秒を追加する
+// DBのISO形式（YYYY-MM-DDTHH:MM:SS）に合わせるため
+ document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form[action="index.py"]');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            const datetimeInputs = document.querySelectorAll('input[type="datetime-local"]');
+            datetimeInputs.forEach(function(input) {
+                if (input.value && !input.value.includes(':00')) {
+                    // 秒がない場合は「:00」を追加して完全なISO形式にする
+                    input.value = input.value + ':00';
+                }
+            });
+        });
+    }
+});
+</script>
+"""
+        
         create_html = f"""
 <div class="form-group mb-2">
     <label class="form-label"><i class="bi bi-calendar-plus"></i> 開始時間</label>
     <input type="datetime-local" class="form-control" name="create_create_datetime" value="{datetime_local_format}" />
 </div>
+{datetime_fix_script}
 """
         update_html = f"""
 <div class="form-group mb-2">
@@ -1592,10 +1636,25 @@ document.addEventListener('DOMContentLoaded', function() {{
     <input type="text" id="tags" name="create_tags" value="" class="form-control" placeholder="例：重要, フォローアップ, 会議"/>
 </div>"""
 
+        # 担当者リストをJSONファイルから読み込む
+        assignees = []
+        try:
+            with open('assignees.json', 'r', encoding='utf-8') as f:
+                assignees = json.load(f)
+        except Exception as e:
+            print(f"Error loading assignees: {e}")
+        
+        # 担当者のオプションを生成
+        assignee_options = "<option value=\"\">\u9078\u629e\u3057\u3066\u304f\u3060\u3055\u3044</option>"
+        for assignee in assignees:
+            assignee_options += f"<option value=\"{assignee['name']}\">{assignee['name']} ({assignee['department']})</option>"
+        
         create_担当者_html = f"""
 <div class="form-group mb-3">
     <label for="assignee" class="form-label"><i class="bi bi-person"></i> 担当者</label>
-    <input type="text" id="assignee" name="create_担当者" value="" class="form-control"/>
+    <select id="assignee" name="create_担当者" class="form-select">
+        {assignee_options}
+    </select>
 </div>"""
 
         create_group_html = f"""
