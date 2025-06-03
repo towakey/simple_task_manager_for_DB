@@ -1441,9 +1441,9 @@ document.addEventListener('DOMContentLoaded', function() {{
                             <div class="row mb-3">
                                 <div class="col-md-12">
                                     <small class="text-muted">
-                                        <i class="bi bi-calendar-check"></i> 更新日: {datetime.datetime.strptime(status["update_date"], "%Y-%m-%dT%H:%M:%S").strftime("%Y-%m-%dT%H:%M:%S")} &nbsp;|&nbsp; 
-                                        <i class="bi bi-calendar-plus"></i> 作成日: {datetime.datetime.strptime(status["create_date"], "%Y-%m-%dT%H:%M:%S").strftime("%Y-%m-%dT%H:%M:%S")} &nbsp;|&nbsp; 
-                                        <i class="bi bi-calendar2-check"></i> 完了日: {datetime.datetime.strptime(status.get("complete_date",""), "%Y-%m-%dT%H:%M:%S").strftime("%Y-%m-%dT%H:%M:%S") if status.get("complete_date") else ""}
+                                        <i class="bi bi-calendar-check"></i> 更新日: {parse_datetime_flexible(status["update_date"])} &nbsp;|&nbsp; 
+                                        <i class="bi bi-calendar-plus"></i> 作成日: {parse_datetime_flexible(status["create_date"])} &nbsp;|&nbsp; 
+                                        <i class="bi bi-calendar2-check"></i> 完了日: {parse_datetime_flexible(status.get("complete_date","")) if status.get("complete_date") else ""}
                                     </small>
                                 </div>
                             </div>
@@ -1636,11 +1636,18 @@ document.addEventListener('DOMContentLoaded', function() {{
     <input type="text" id="tags" name="create_tags" value="" class="form-control" placeholder="例：重要, フォローアップ, 会議"/>
 </div>"""
 
-        # 担当者リストをJSONファイルから読み込む
+        # 担当者リストをCSVファイルから読み込む
         assignees = []
         try:
-            with open('assignees.json', 'r', encoding='utf-8') as f:
-                assignees = json.load(f)
+            with open('assignees.csv', 'r', encoding='utf-8') as f:
+                csv_reader = csv.reader(f)
+                headers = next(csv_reader)  # ヘッダ行をスキップ
+                for row in csv_reader:
+                    if len(row) >= 2:
+                        assignees.append({
+                            'name': row[0],
+                            'department': row[1]
+                        })
         except Exception as e:
             print(f"Error loading assignees: {e}")
         
