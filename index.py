@@ -1552,11 +1552,13 @@ document.addEventListener('DOMContentLoaded', function() {{
     </select>
 </div>
 """
+        # 開始時間をdatetime-local形式に変換（YYYY-MM-DDThh:mm）
+        datetime_local_format = datetime.datetime.now().strftime('%Y-%m-%dT%H:%M')
+        
         create_html = f"""
 <div class="form-group mb-2">
-    <label class="form-label"><i class="bi bi-calendar-plus"></i> 作成時間</label>
-    <p class="form-control-plaintext">{create_create_datetime}</p>
-    <input type="hidden" name="create_create_datetime" value="{create_create_datetime}" />
+    <label class="form-label"><i class="bi bi-calendar-plus"></i> 開始時間</label>
+    <input type="datetime-local" class="form-control" name="create_create_datetime" value="{datetime_local_format}" />
 </div>
 """
         update_html = f"""
