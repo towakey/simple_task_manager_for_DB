@@ -469,7 +469,7 @@ TEMPLATE_MODAL_HTML_SCRIPT = r"""
             <option value="">選択してください</option>
           </select>
         </div>
-        <div class="mb-3">
+        <div class="mb-3" style="display:none">
           <label for="templateContents" class="form-label">テンプレート内容</label>
           <textarea id="templateContents" class="form-control" rows="5"></textarea>
         </div>
@@ -492,6 +492,9 @@ TEMPLATE_MODAL_HTML_SCRIPT = r"""
     const templateContents = document.getElementById('templateContents');
     const templateInputsContainer = document.getElementById('templateInputsContainer');
     const applyTemplateButton = document.getElementById('applyTemplateButton');
+    
+    // テンプレート内容のテキストエリアを非表示に
+    document.querySelector('label[for="templateContents"]').parentElement.style.display = 'none';
     document.querySelectorAll('.open-template-modal-button').forEach(function(button) {
       button.addEventListener('click', function() {
         currentTargetTextareaId = this.dataset.targetTextarea;
@@ -523,6 +526,9 @@ TEMPLATE_MODAL_HTML_SCRIPT = r"""
       templateContents.value = selectedTemplate.contents;
       
       console.log('選択されたテンプレート:', selectedTemplate.name);
+      
+      // 確実にテンプレート内容が非表示になっているか確認
+      document.querySelector('label[for="templateContents"]').parentElement.style.display = 'none';
       
       // 入力フィールドを生成
       if (selectedTemplate.input_contents && Array.isArray(selectedTemplate.input_contents)) {
@@ -1789,7 +1795,7 @@ document.addEventListener('DOMContentLoaded', function() {{
             </div>
             <div class="row mb-3">
               <div class="col-12">
-                <div class="form-group">
+                <div class="form-group" style="display:none">
                   <label for="modalTemplateContent" class="form-label">テンプレート内容</label>
                   <textarea id="modalTemplateContent" class="form-control" rows="6"></textarea>
                 </div>
@@ -2537,6 +2543,8 @@ document.addEventListener('DOMContentLoaded', function() {
             templateArea.classList.remove('d-none');
             templateName.value = matchingTemplate.name;
             templateContent.value = matchingTemplate.contents;
+            // テンプレート内容のテキストエリアを非表示に
+            document.querySelector('.mb-3 label[for="templateContents"]').parentElement.style.display = 'none';
             
             // 入力フィールドを表示
             templateInputsContainer.innerHTML = '';
