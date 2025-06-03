@@ -2907,7 +2907,7 @@ document.addEventListener('DOMContentLoaded', function() {
             "complete_date": (create_create_datetime if create_state_select == "COMPLETE" else None),
             "pinned": create_pinned,
             "category": create_category_input,
-            "group_category": create_groupCategory,
+            "groupCategory": create_groupCategory,
             "担当者": create_担当者,
             "大分類": create_大分類,
             "中分類": create_中分類,
