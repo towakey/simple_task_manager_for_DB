@@ -1835,13 +1835,20 @@ function updateDaiCategories() {
     });
     
     // 大分類のオプションを追加
-    Array.from(uniqueDai).forEach(dai => {
+    Array.from(uniqueDai).sort().forEach(dai => {
         const option = document.createElement('option');
         option.value = dai;
         option.textContent = dai;
         daiSelect.appendChild(option);
     });
+    
+    // 中分類を更新
     updateChuCategories();
+    
+    // 小分類も確実に更新するために少し遅延させて呼び出す
+    setTimeout(() => {
+        updateShoCategories();
+    }, 50);
 }
 
 // 大分類が変更されたときに中分類を更新
@@ -1865,13 +1872,34 @@ function updateChuCategories() {
     });
     
     // 中分類のオプションを追加
-    Array.from(uniqueChu).forEach(chu => {
+    Array.from(uniqueChu).sort().forEach(chu => {
         const option = document.createElement('option');
         option.value = chu;
         option.textContent = chu;
         chuSelect.appendChild(option);
     });
-    updateShoCategories();
+    
+    // 小分類を確実に更新
+    setTimeout(() => {
+        updateShoCategories();
+        
+        // Irregularが選択されている場合、確実にフリー入力を出現させるために再度実行
+        const isCreateMode = window.location.href.includes('mode=create');
+        const regularSwitch = document.getElementById('create_regular');
+        const isIrregular = regularSwitch && !regularSwitch.checked;
+        
+        if (isCreateMode && isIrregular) {
+            setTimeout(() => {
+                const shoSelect = document.getElementById('smallCategory');
+                // フリー入力オプションがあるか確認
+                const hasCustomOption = Array.from(shoSelect.options).some(option => option.value === "__custom__");
+                if (!hasCustomOption) {
+                    console.log('中分類変更後にフリー入力オプションを再追加');
+                    updateShoCategories();
+                }
+            }, 100);
+        }
+    }, 50);
 }
 
 // 中分類が変更されたときに小分類を更新
@@ -1883,6 +1911,14 @@ function updateShoCategories() {
     const selectedGroup = groupSelect.value;
     const selectedDai = daiSelect.value;
     const selectedChu = chuSelect.value;
+    
+    // 現在のsmallCategoryコンテナを取得
+    const smallCategoryContainer = shoSelect.parentElement;
+    
+    // 新規作成モードで、Irregularが選択されているかチェック
+    const isCreateMode = window.location.href.includes('mode=create');
+    const regularSwitch = document.getElementById('create_regular');
+    const isIrregular = regularSwitch && !regularSwitch.checked;
     
     // 小分類のオプションをクリア
     shoSelect.innerHTML = '<option value="">選択してください</option>';
@@ -1898,12 +1934,124 @@ function updateShoCategories() {
     });
     
     // 小分類のオプションを追加
-    Array.from(uniqueSho).forEach(sho => {
+    Array.from(uniqueSho).sort().forEach(sho => {
         const option = document.createElement('option');
         option.value = sho;
         option.textContent = sho;
         shoSelect.appendChild(option);
     });
+    
+    // 新規作成モードでIrregularの場合のみフリー入力オプションを追加
+    if (isCreateMode && isIrregular) {
+        console.log('フリー入力オプション追加処理実行');
+        
+        // フリー入力オプションがすでに存在するか確認
+        let customOption = Array.from(shoSelect.options).find(option => option.value === "__custom__");
+        if (!customOption) {
+            // フリー入力オプションをセレクトに追加
+            customOption = document.createElement('option');
+            customOption.value = "__custom__";
+            customOption.textContent = "フリー入力";
+            shoSelect.appendChild(customOption);
+            console.log('フリー入力オプションを追加しました');
+        }
+        
+        // すでにカスタム入力フィールドが存在するか確認
+        let customInput = document.getElementById('custom_smallCategory');
+        
+        // カスタム入力フィールドがまだなければ作成
+        if (!customInput) {
+            // カスタム入力用のテキストフィールドを作成
+            customInput = document.createElement('input');
+            customInput.type = 'text';
+            customInput.id = 'custom_smallCategory';
+            customInput.name = 'custom_smallCategory';
+            customInput.className = 'form-control mt-2';
+            customInput.placeholder = 'カスタム小分類を入力';
+            customInput.style.display = 'none'; // 初期状態では非表示
+            
+            // 小分類コンテナに追加
+            smallCategoryContainer.appendChild(customInput);
+            console.log('カスタム入力フィールドを追加しました');
+            
+            // セレクトボックスの変更イベントを設定
+            shoSelect.addEventListener('change', function() {
+                if (this.value === "__custom__") {
+                    customInput.style.display = 'block';
+                    customInput.focus();
+                } else {
+                    customInput.style.display = 'none';
+                }
+            });
+        }
+        
+        // 安全のために、既存のイベントリスナーに関わらず必要な変更イベントを追加する
+        // (同じ関数が複数回追加されても問題ない)
+        if (customInput) {
+            shoSelect.addEventListener('change', function() {
+                if (this.value === "__custom__") {
+                    customInput.style.display = 'block';
+                    customInput.focus();
+                } else {
+                    customInput.style.display = 'none';
+                }
+            });
+            console.log('セレクトボックスの変更イベントを再設定しました');
+        }
+    } else {
+        // Irregularでない場合、カスタム入力フィールドを削除
+        const customInput = document.getElementById('custom_smallCategory');
+        if (customInput) {
+            customInput.remove();
+        }
+        
+        // セレクトボックスからフリー入力オプションを削除
+        const customOption = Array.from(shoSelect.options).find(option => option.value === "__custom__");
+        if (customOption) {
+            shoSelect.removeChild(customOption);
+        }
+    }
+    
+    // Irregularかつ新規作成モードの場合、最後にもう一度確認
+    if (isCreateMode && isIrregular) {
+        setTimeout(() => {
+            const shoSelect = document.getElementById('smallCategory');
+            if (shoSelect) {
+                const customOption = Array.from(shoSelect.options).find(option => option.value === "__custom__");
+                if (!customOption) {
+                    console.log('最終確認でフリー入力オプションが見つからなかったため再追加');
+                    // フリー入力オプションを再度追加
+                    const newCustomOption = document.createElement('option');
+                    newCustomOption.value = "__custom__";
+                    newCustomOption.textContent = "フリー入力";
+                    shoSelect.appendChild(newCustomOption);
+                    
+                    // カスタム入力フィールドがない場合は再度作成
+                    let customInput = document.getElementById('custom_smallCategory');
+                    if (!customInput && smallCategoryContainer) {
+                        customInput = document.createElement('input');
+                        customInput.type = 'text';
+                        customInput.id = 'custom_smallCategory';
+                        customInput.name = 'custom_smallCategory';
+                        customInput.className = 'form-control mt-2';
+                        customInput.placeholder = 'カスタム小分類を入力';
+                        customInput.style.display = 'none';
+                        smallCategoryContainer.appendChild(customInput);
+                        
+                        // セレクトボックスの変更イベントを再設定
+                        shoSelect.addEventListener('change', function() {
+                            if (this.value === "__custom__") {
+                                customInput.style.display = 'block';
+                                customInput.focus();
+                            } else {
+                                customInput.style.display = 'none';
+                            }
+                        });
+                    }
+                }
+            }
+        }, 200);
+    }
 }
 
 // 編集モードでの値の設定
@@ -1955,9 +2103,13 @@ document.addEventListener('DOMContentLoaded', function() {
         if (this.checked) {
             cardElement.classList.add('bg-regular-task');
             cardElement.classList.remove('bg-irregular-task');
+            // Regular選択時に、小分類を更新（フリー入力項目を削除するため）
+            updateShoCategories();
         } else {
             cardElement.classList.remove('bg-regular-task');
             cardElement.classList.add('bg-irregular-task');
+            // Irregular選択時に、小分類を更新（フリー入力項目を追加するため）
+            updateShoCategories();
         }
     });
 
@@ -1989,10 +2141,78 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     document.getElementById('selectIrregularButton').addEventListener('click', function() {
+        // Irregular状態に設定
         regularSwitch.checked = false;
         cardElement.classList.remove('bg-regular-task');
         cardElement.classList.add('bg-irregular-task');
+        
+        // モーダルを閉じる前に小分類セレクトボックスに直接フリー入力オプションを追加
+        const shoSelect = document.getElementById('smallCategory');
+        const smallCategoryContainer = shoSelect ? shoSelect.parentElement : null;
+        
         regularTypeModal.hide();
+        
+        // モーダルが閉じた直後に実行
+        setTimeout(() => {
+            console.log('モーダル閉じた直後の小分類処理');
+            
+            // まず通常のupdateShoCategoriesを実行
+            updateShoCategories();
+            
+            // その後に直接小分類にフリー入力を強制的に追加
+            setTimeout(() => {
+                // 再度要素を取得（モーダル閉じた後にDOMが更新されている可能性があるため）
+                const shoSelect = document.getElementById('smallCategory');
+                const smallCategoryContainer = shoSelect ? shoSelect.parentElement : null;
+                
+                if (shoSelect && smallCategoryContainer) {
+                    // フリー入力オプションがないか確認
+                    let customOption = Array.from(shoSelect.options).find(option => option.value === "__custom__");
+                    
+                    // フリー入力オプションがない場合は追加
+                    if (!customOption) {
+                        console.log('フリー入力オプションを直接追加');
+                        customOption = document.createElement('option');
+                        customOption.value = "__custom__";
+                        customOption.textContent = "フリー入力";
+                        shoSelect.appendChild(customOption);
+                    }
+                    
+                    // カスタム入力フィールドがないか確認
+                    let customInput = document.getElementById('custom_smallCategory');
+                    
+                    // カスタム入力フィールドがない場合は作成
+                    if (!customInput) {
+                        console.log('カスタム入力フィールドを直接追加');
+                        customInput = document.createElement('input');
+                        customInput.type = 'text';
+                        customInput.id = 'custom_smallCategory';
+                        customInput.name = 'custom_smallCategory';
+                        customInput.className = 'form-control mt-2';
+                        customInput.placeholder = 'カスタム小分類を入力';
+                        customInput.style.display = 'none'; // 初期状態では非表示
+                        
+                        // 小分類コンテナに追加
+                        smallCategoryContainer.appendChild(customInput);
+                        
+                        // セレクトボックスの変更イベントを設定
+                        shoSelect.addEventListener('change', function() {
+                            if (this.value === "__custom__") {
+                                customInput.style.display = 'block';
+                                customInput.focus();
+                            } else {
+                                customInput.style.display = 'none';
+                            }
+                        });
+                    }
+                    
+                    // 再度updateShoCategoriesを呼び出して確実に更新
+                    setTimeout(() => {
+                        updateShoCategories();
+                    }, 300);
+                }
+            }, 100);
+        }, 50);
     });
     
     // 分類モーダルの大分類更新処理
@@ -2212,6 +2432,47 @@ document.addEventListener('DOMContentLoaded', function() {
         // モーダルを閉じる
         classificationModal.hide();
     });
+    
+    // フォーム送信時にカスタム小分類の値を処理
+    const taskForm = document.querySelector('form[action="./index.py?mode=write"]');
+    if (taskForm) {
+        taskForm.addEventListener('submit', function(e) {
+            // 一度送信を中断して小分類の値を確認して処理
+            e.preventDefault();
+            
+            // Irregularかつフリー入力が選択されている場合の処理
+            const regularSwitch = document.getElementById('create_regular');
+            const shoSelect = document.getElementById('smallCategory');
+            const customInput = document.getElementById('custom_smallCategory');
+            
+            if (!regularSwitch.checked && // Irregularが選択されている
+                shoSelect && shoSelect.value === "__custom__" && // フリー入力が選択されている
+                customInput && customInput.value.trim() !== "") { // カスタム入力がある
+                
+                console.log('カスタム小分類値を処理中:', customInput.value.trim());
+                
+                // 既存の小分類のセレクトボックスを正しい値に更新
+                // セレクトボックスを無効化するのではなく、実際の値を設定
+                // そうしないと表示時に__custom__が表示されてしまう
+                
+                // カスタム入力値をセレクトボックスに追加
+                const newOption = document.createElement('option');
+                newOption.value = customInput.value.trim();
+                newOption.textContent = customInput.value.trim();
+                shoSelect.appendChild(newOption);
+                
+                // セレクトボックスで追加した新しい値を選択
+                shoSelect.value = customInput.value.trim();
+                
+                console.log('カスタム小分類値を設定完了:', shoSelect.value);
+            }
+            
+            // 送信を再開
+            setTimeout(function() {
+                taskForm.submit();
+            }, 100);
+        });
+    }
     
     // 分類モーダル初期化処理
     function initClassificationModal() {
@@ -2621,6 +2882,13 @@ document.addEventListener('DOMContentLoaded', function() {
         
 # 作成処理 --------------------------------------------------------------------------------------------
     elif mode=="write":
+        # カスタム小分類フィールドの処理
+        custom_shoCategory = form.getfirst('custom_smallCategory', '')
+        
+        # 小分類が__custom__の場合はカスタム入力値を使用
+        if create_小分類 == "__custom__" and custom_shoCategory:
+            create_小分類 = custom_shoCategory
+        
         # タスク辞書を構築してデータベースへ登録
         task_dict = {
             "id": create_task_id or str(uuid.uuid4()),
