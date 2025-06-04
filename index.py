@@ -2897,6 +2897,17 @@ document.addEventListener('DOMContentLoaded', function() {
         if create_小分類 == "__custom__" and custom_shoCategory:
             create_小分類 = custom_shoCategory
         
+        # カテゴリが空の場合、大分類_中分類_小分類の形式で自動生成
+        if not create_category_input and (create_大分類 or create_中分類 or create_小分類):
+            category_parts = []
+            if create_大分類:
+                category_parts.append(create_大分類)
+            if create_中分類:
+                category_parts.append(create_中分類)
+            if create_小分類:
+                category_parts.append(create_小分類)
+            create_category_input = "_".join(category_parts)
+        
         # タスク辞書を構築してデータベースへ登録
         task_dict = {
             "id": create_task_id or str(uuid.uuid4()),
@@ -2916,7 +2927,17 @@ document.addEventListener('DOMContentLoaded', function() {
             "report_flag": 1 if create_report_flag else 0,
             "content": create_content.replace('\r\n', '\n').replace('\r', '\n'),
             # タグはカンマ区切り文字列→リストへ変換し、空要素除外
-            "tags": [t.strip() for t in create_tags.split(',') if t.strip()],
+            "tags": (
+                # タグが空の場合、グループ・分類をタグとして追加
+                [t for t in [
+                    create_groupCategory,
+                    create_大分類,
+                    create_中分類,
+                    create_小分類
+                ] if t and t.strip()]  # 空でないものだけをフィルタリング
+                if not create_tags.strip()  # タグが空の場合のみ適用
+                else [t.strip() for t in create_tags.split(',') if t.strip()]  # 通常のタグ処理
+            ),
         }
 
         # データベースへ挿入
