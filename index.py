@@ -60,6 +60,7 @@ q_groupCategory = form.getfirst("groupCategory", '')  # グループによる絞
 q_daiCategory = form.getfirst("daiCategory", '')  # 大分類による絞り込み用
 q_chuCategory = form.getfirst("chuCategory", '')  # 中分類による絞り込み用
 q_shoCategory = form.getfirst("shoCategory", '')  # 小分類による絞り込み用
+q_regular = form.getfirst("regular", '')  # 定期/非定期による絞り込み用
 sort_by = form.getfirst("sort", 'update_date')  # デフォルトは更新日でソート
 sort_order = form.getfirst("order", 'desc')  # デフォルトは降順
 
@@ -368,6 +369,13 @@ def nav():
                                 <li><hr class="dropdown-divider"></li>
                                 <li><a class="dropdown-item" href="./index.py?sort=status&order=asc">状態 (継続→完了)</a></li>
                                 <li><a class="dropdown-item" href="./index.py?sort=status&order=desc">状態 (完了→継続)</a></li>
+                            </ul>
+                        </li>
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">定期/非定期</a>
+                            <ul class="dropdown-menu scrollable-dropdown-menu">
+                                <li><a class="dropdown-item" href="./index.py?regular=Regular">定期</a></li>
+                                <li><a class="dropdown-item" href="./index.py?regular=Irregular">非定期</a></li>
                             </ul>
                         </li>
                     </ul>
@@ -795,6 +803,14 @@ if __name__ == '__main__':
                     filtered_tasks.append(task)
             tasks = filtered_tasks
 
+        # 定期/非定期によるフィルタリング
+        if q_regular != "":
+            filtered_tasks = []
+            for task in tasks:
+                if 'regular' in task['detail'] and task['detail']['regular'] == q_regular:
+                    filtered_tasks.append(task)
+            tasks = filtered_tasks
+
         # ピン止めされたタスクを先頭に表示
         pinned_tasks = []
         unpinned_tasks = []
@@ -1143,6 +1159,11 @@ function updateDaiCategories() {{
         daiSelect.appendChild(option);
     }});
     updateChuCategories();
+    
+    // 小分類も確実に更新するために少し遅延させて呼び出す
+    setTimeout(() => {{
+        updateShoCategories();
+    }}, 50);
 }}
 
 // 大分類が変更されたときに中分類を更新
@@ -1658,7 +1679,7 @@ document.addEventListener('DOMContentLoaded', function() {{
             print(f"Error loading assignees: {e}")
         
         # 担当者のオプションを生成
-        assignee_options = "<option value=\"\">\u9078\u629e\u3057\u3066\u304f\u3060\u3055\u3044</option>"
+        assignee_options = "<option value=\"\">\u9078\u629e\u3057\u3066\u304a\u3060\u3055\u3044</option>"
         for assignee in assignees:
             assignee_options += f"<option value=\"{assignee['name']}\">{assignee['name']} ({assignee['department']})</option>"
         
@@ -1847,8 +1868,6 @@ function updateDaiCategories() {
         option.textContent = dai;
         daiSelect.appendChild(option);
     });
-    
-    // 中分類を更新
     updateChuCategories();
     
     // 小分類も確実に更新するために少し遅延させて呼び出す
@@ -1884,28 +1903,7 @@ function updateChuCategories() {
         option.textContent = chu;
         chuSelect.appendChild(option);
     });
-    
-    // 小分類を確実に更新
-    setTimeout(() => {
-        updateShoCategories();
-        
-        // Irregularが選択されている場合、確実にフリー入力を出現させるために再度実行
-        const isCreateMode = window.location.href.includes('mode=create');
-        const regularSwitch = document.getElementById('create_regular');
-        const isIrregular = regularSwitch && !regularSwitch.checked;
-        
-        if (isCreateMode && isIrregular) {
-            setTimeout(() => {
-                const shoSelect = document.getElementById('smallCategory');
-                // フリー入力オプションがあるか確認
-                const hasCustomOption = Array.from(shoSelect.options).some(option => option.value === "__custom__");
-                if (!hasCustomOption) {
-                    console.log('中分類変更後にフリー入力オプションを再追加');
-                    updateShoCategories();
-                }
-            }, 100);
-        }
-    }, 50);
+    updateShoCategories();
 }
 
 // 中分類が変更されたときに小分類を更新
@@ -1917,14 +1915,6 @@ function updateShoCategories() {
     const selectedGroup = groupSelect.value;
     const selectedDai = daiSelect.value;
     const selectedChu = chuSelect.value;
-    
-    // 現在のsmallCategoryコンテナを取得
-    const smallCategoryContainer = shoSelect.parentElement;
-    
-    // 新規作成モードで、Irregularが選択されているかチェック
-    const isCreateMode = window.location.href.includes('mode=create');
-    const regularSwitch = document.getElementById('create_regular');
-    const isIrregular = regularSwitch && !regularSwitch.checked;
     
     // 小分類のオプションをクリア
     shoSelect.innerHTML = '<option value="">選択してください</option>';
@@ -1946,118 +1936,6 @@ function updateShoCategories() {
         option.textContent = sho;
         shoSelect.appendChild(option);
     });
-    
-    // 新規作成モードでIrregularの場合のみフリー入力オプションを追加
-    if (isCreateMode && isIrregular) {
-        console.log('フリー入力オプション追加処理実行');
-        
-        // フリー入力オプションがすでに存在するか確認
-        let customOption = Array.from(shoSelect.options).find(option => option.value === "__custom__");
-        if (!customOption) {
-            // フリー入力オプションをセレクトに追加
-            customOption = document.createElement('option');
-            customOption.value = "__custom__";
-            customOption.textContent = "フリー入力";
-            shoSelect.appendChild(customOption);
-            console.log('フリー入力オプションを追加しました');
-        }
-        
-        // すでにカスタム入力フィールドが存在するか確認
-        let customInput = document.getElementById('custom_smallCategory');
-        
-        // カスタム入力フィールドがまだなければ作成
-        if (!customInput) {
-            // カスタム入力用のテキストフィールドを作成
-            customInput = document.createElement('input');
-            customInput.type = 'text';
-            customInput.id = 'custom_smallCategory';
-            customInput.name = 'custom_smallCategory';
-            customInput.className = 'form-control mt-2';
-            customInput.placeholder = 'カスタム小分類を入力';
-            customInput.style.display = 'none'; // 初期状態では非表示
-            
-            // 小分類コンテナに追加
-            smallCategoryContainer.appendChild(customInput);
-            console.log('カスタム入力フィールドを追加しました');
-            
-            // セレクトボックスの変更イベントを設定
-            shoSelect.addEventListener('change', function() {
-                if (this.value === "__custom__") {
-                    customInput.style.display = 'block';
-                    customInput.focus();
-                } else {
-                    customInput.style.display = 'none';
-                }
-            });
-        }
-        
-        // 安全のために、既存のイベントリスナーに関わらず必要な変更イベントを追加する
-        // (同じ関数が複数回追加されても問題ない)
-        if (customInput) {
-            shoSelect.addEventListener('change', function() {
-                if (this.value === "__custom__") {
-                    customInput.style.display = 'block';
-                    customInput.focus();
-                } else {
-                    customInput.style.display = 'none';
-                }
-            });
-            console.log('セレクトボックスの変更イベントを再設定しました');
-        }
-    } else {
-        // Irregularでない場合、カスタム入力フィールドを削除
-        const customInput = document.getElementById('custom_smallCategory');
-        if (customInput) {
-            customInput.remove();
-        }
-        
-        // セレクトボックスからフリー入力オプションを削除
-        const customOption = Array.from(shoSelect.options).find(option => option.value === "__custom__");
-        if (customOption) {
-            shoSelect.removeChild(customOption);
-        }
-    }
-    
-    // Irregularかつ新規作成モードの場合、最後にもう一度確認
-    if (isCreateMode && isIrregular) {
-        setTimeout(() => {
-            const shoSelect = document.getElementById('smallCategory');
-            if (shoSelect) {
-                const customOption = Array.from(shoSelect.options).find(option => option.value === "__custom__");
-                if (!customOption) {
-                    console.log('最終確認でフリー入力オプションが見つからなかったため再追加');
-                    // フリー入力オプションを再度追加
-                    const newCustomOption = document.createElement('option');
-                    newCustomOption.value = "__custom__";
-                    newCustomOption.textContent = "フリー入力";
-                    shoSelect.appendChild(newCustomOption);
-                    
-                    // カスタム入力フィールドがない場合は再度作成
-                    let customInput = document.getElementById('custom_smallCategory');
-                    if (!customInput && smallCategoryContainer) {
-                        customInput = document.createElement('input');
-                        customInput.type = 'text';
-                        customInput.id = 'custom_smallCategory';
-                        customInput.name = 'custom_smallCategory';
-                        customInput.className = 'form-control mt-2';
-                        customInput.placeholder = 'カスタム小分類を入力';
-                        customInput.style.display = 'none';
-                        smallCategoryContainer.appendChild(customInput);
-                        
-                        // セレクトボックスの変更イベントを再設定
-                        shoSelect.addEventListener('change', function() {
-                            if (this.value === "__custom__") {
-                                customInput.style.display = 'block';
-                                customInput.focus();
-                            } else {
-                                customInput.style.display = 'none';
-                            }
-                        });
-                    }
-                }
-            }
-        }, 200);
-    }
 }
 
 // 編集モードでの値の設定
@@ -2154,7 +2032,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // モーダルを閉じる前に小分類セレクトボックスに直接フリー入力オプションを追加
         const shoSelect = document.getElementById('smallCategory');
-        const smallCategoryContainer = shoSelect ? shoSelect.parentElement : null;
+        const smallCategoryContainer = shoSelect.parentElement;
         
         regularTypeModal.hide();
         
