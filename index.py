@@ -268,7 +268,7 @@ def header():
                         });
                         
                         // 選択されたグループに属する大分類のみ表示
-                        document.querySelectorAll(`.dai-category[data-group="${{groupCat}}"]`).forEach(function(dai) {
+                        document.querySelectorAll(`.dai-category[data-group="${groupCat}"]`).forEach(function(dai) {
                             dai.style.display = 'block';
                         });
                         
@@ -291,7 +291,7 @@ def header():
                         });
                         
                         // 選択されたグループと大分類に属する中分類のみ表示
-                        document.querySelectorAll(`.chu-category[data-group="${{groupCat}}"][data-dai="${{daiCat}}"]`).forEach(function(chu) {
+                        document.querySelectorAll(`.chu-category[data-group="${groupCat}"][data-dai="${daiCat}"]`).forEach(function(chu) {
                             chu.style.display = 'block';
                         });
                         
@@ -315,7 +315,7 @@ def header():
                         });
                         
                         // 選択されたグループ、大分類と中分類に属する小分類のみ表示
-                        document.querySelectorAll(`.sho-category[data-group="${{groupCat}}"][data-dai="${{daiCat}}"][data-chu="${{chuCat}}"]`).forEach(function(sho) {
+                        document.querySelectorAll(`.sho-category[data-group="${groupCat}"][data-dai="${daiCat}"][data-chu="${chuCat}"]`).forEach(function(sho) {
                             sho.style.display = 'block';
                         });
                     });
@@ -339,6 +339,9 @@ def nav():
                     <ul class="navbar-nav">
                         <li class="nav-item">
                             <a class="nav-link" href="./index.py?mode=create">新規作成</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="./index.py?mode=report">日報</a>
                         </li>
                         <li class="nav-item dropdown">
                             <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">カテゴリー</a>
@@ -1125,119 +1128,107 @@ if __name__ == '__main__':
 </div>"""
 
         # JavaScriptのための変数準備
-        create_regular_js = f"""
+        create_regular_js = """
 <script>
 // 分類データ
-const classifications = {json.dumps(classifications)};
+const classifications = """ + str(classifications).replace("'", '"') + """;
 
 // グループが変更されたときに大分類を更新
-function updateDaiCategories() {{
+function updateDaiCategories() {
     const groupSelect = document.getElementById('group');
     const daiSelect = document.getElementById('majorCategory');
-    
-    if (!groupSelect || (groupSelect.tagName !== 'SELECT') || !daiSelect || (daiSelect.tagName !== 'SELECT')) {{
-        updateChuCategories();
-        return;
-    }}
-
     const selectedGroup = groupSelect.value;
+    
+    // 大分類のオプションをクリア
     daiSelect.innerHTML = '<option value="">選択してください</option>';
     
+    // 選択されたグループに基づいて大分類を更新
     const uniqueDai = new Set();
-    if (classifications && Array.isArray(classifications)) {{
-        classifications.forEach(item => {{
-            if (selectedGroup === '' || item.group === selectedGroup) {{
-                if (item.dai) uniqueDai.add(item.dai);
-            }}
-        }});
-    }}
+    classifications.forEach(item => {
+        if (selectedGroup === '' || item.group === selectedGroup) {
+            uniqueDai.add(item.dai);
+        }
+    });
     
-    Array.from(uniqueDai).sort().forEach(dai => {{
+    // 大分類のオプションを追加
+    Array.from(uniqueDai).sort().forEach(dai => {
         const option = document.createElement('option');
         option.value = dai;
         option.textContent = dai;
         daiSelect.appendChild(option);
-    }});
+    });
     updateChuCategories();
     
     // 小分類も確実に更新するために少し遅延させて呼び出す
-    setTimeout(() => {{
+    setTimeout(() => {
         updateShoCategories();
-    }}, 50);
-}}
+    }, 50);
+}
 
 // 大分類が変更されたときに中分類を更新
-function updateChuCategories() {{
+function updateChuCategories() {
     const groupSelect = document.getElementById('group');
     const daiSelect = document.getElementById('majorCategory');
     const chuSelect = document.getElementById('mediumCategory');
-
-    if (!daiSelect || (daiSelect.tagName !== 'SELECT' && daiSelect.value === '') || !chuSelect || (chuSelect.tagName !== 'SELECT')) {{
-         updateShoCategories();
-        return;
-    }}
+    const selectedGroup = groupSelect.value;
+    const selectedDai = daiSelect.value;
     
-    const selectedGroup = groupSelect && groupSelect.tagName === 'SELECT' ? groupSelect.value : (document.getElementsByName('update_groupCategory')[0] ? document.getElementsByName('update_groupCategory')[0].value : '');
-    const selectedDai = daiSelect.tagName === 'SELECT' ? daiSelect.value : (document.getElementsByName('update_大分類')[0] ? document.getElementsByName('update_大分類')[0].value : '');
-
+    // 中分類のオプションをクリア
     chuSelect.innerHTML = '<option value="">選択してください</option>';
     
+    // 選択されたグループと大分類に基づいて中分類を更新
     const uniqueChu = new Set();
-    if (classifications && Array.isArray(classifications)) {{
-        classifications.forEach(item => {{
-            if ((selectedGroup === '' || item.group === selectedGroup) && 
-                (selectedDai === '' || item.dai === selectedDai)) {{
-                if (item.chu) uniqueChu.add(item.chu);
-            }}
-        }});
-    }}
+    classifications.forEach(item => {
+        if ((selectedGroup === '' || item.group === selectedGroup) && 
+            (selectedDai === '' || item.dai === selectedDai)) {
+            uniqueChu.add(item.chu);
+        }
+    });
     
-    Array.from(uniqueChu).sort().forEach(chu => {{
+    // 中分類のオプションを追加
+    Array.from(uniqueChu).sort().forEach(chu => {
         const option = document.createElement('option');
         option.value = chu;
         option.textContent = chu;
         chuSelect.appendChild(option);
-    }});
+    });
     updateShoCategories();
-}}
+}
 
 // 中分類が変更されたときに小分類を更新
-function updateShoCategories() {{
+function updateShoCategories() {
     const groupSelect = document.getElementById('group');
     const daiSelect = document.getElementById('majorCategory');
     const chuSelect = document.getElementById('mediumCategory');
     const shoSelect = document.getElementById('smallCategory');
-
-    if (!chuSelect || (chuSelect.tagName !== 'SELECT' && chuSelect.value === '') || !shoSelect || (shoSelect.tagName !== 'SELECT')) {{
-        return;
-    }}
-
-    const selectedGroup = groupSelect && groupSelect.tagName === 'SELECT' ? groupSelect.value : (document.getElementsByName('update_groupCategory')[0] ? document.getElementsByName('update_groupCategory')[0].value : '');
-    const selectedDai = daiSelect && daiSelect.tagName === 'SELECT' ? daiSelect.value : (document.getElementsByName('update_大分類')[0] ? document.getElementsByName('update_大分類')[0].value : '');
-    const selectedChu = chuSelect.tagName === 'SELECT' ? chuSelect.value : (document.getElementsByName('update_中分類')[0] ? document.getElementsByName('update_中分類')[0].value : '');
+    const selectedGroup = groupSelect.value;
+    const selectedDai = daiSelect.value;
+    const selectedChu = chuSelect.value;
     
+    // 小分類のオプションをクリア
     shoSelect.innerHTML = '<option value="">選択してください</option>';
     
+    // 選択されたグループ、大分類、中分類に基づいて小分類を更新
     const uniqueSho = new Set();
-    if (classifications && Array.isArray(classifications)) {{
-        classifications.forEach(item => {{
-            if ((selectedGroup === '' || item.group === selectedGroup) && 
-                (selectedDai === '' || item.dai === selectedDai) && 
-                (selectedChu === '' || item.chu === selectedChu)) {{
-                if (item.sho) uniqueSho.add(item.sho);
-            }}
-        }});
-    }}
+    classifications.forEach(item => {
+        if ((selectedGroup === '' || item.group === selectedGroup) && 
+            (selectedDai === '' || item.dai === selectedDai) && 
+            (selectedChu === '' || item.chu === selectedChu)) {
+            uniqueSho.add(item.sho);
+        }
+    });
     
-    Array.from(uniqueSho).sort().forEach(sho => {{
+    // 小分類のオプションを追加
+    Array.from(uniqueSho).sort().forEach(sho => {
         const option = document.createElement('option');
         option.value = sho;
         option.textContent = sho;
         shoSelect.appendChild(option);
-    }});
-}}
+    });
+}
 
-document.addEventListener('DOMContentLoaded', function() {{
+// 編集モードでの値の設定
+document.addEventListener('DOMContentLoaded', function() {
     if (document.getElementById('group') && document.getElementById('group').tagName === 'SELECT') {{
         if (document.getElementById('group').value) {{
             updateDaiCategories();
@@ -1252,26 +1243,704 @@ document.addEventListener('DOMContentLoaded', function() {{
         }}
     }}
 
-    const regularSwitch = document.getElementById('update_regular');
-    if (regularSwitch) {{
-        const cardElement = regularSwitch.closest('.card'); 
+    const regularSwitch = document.getElementById('create_regular');
+    if (!regularSwitch) return;
+    const cardElement = regularSwitch.closest('.card'); 
+    
+    // 初期状態の設定（デフォルトはchecked=trueなのでborder-info）
+    cardElement.classList.add('border-info');
+    
+    // スイッチの変更を監視
+    regularSwitch.addEventListener('change', function() {
+        if (this.checked) {
+            cardElement.classList.remove('border-danger');
+            cardElement.classList.add('border-info');
+        } else {
+            cardElement.classList.remove('border-info');
+            cardElement.classList.add('border-danger');
+        }
+    });
+});
+
+// Regular/Irregularスイッチの背景色変更
+document.addEventListener('DOMContentLoaded', function() {
+    const regularSwitch = document.getElementById('create_regular');
+    if (!regularSwitch) return;
+    const cardElement = regularSwitch.closest('.card'); 
+    
+    // 初期状態の設定（デフォルトはchecked=trueなのでbg-regular-task）
+    cardElement.classList.add('bg-regular-task');
+    
+    // スイッチの変更を監視
+    regularSwitch.addEventListener('change', function() {
+        if (this.checked) {
+            cardElement.classList.add('bg-regular-task');
+            cardElement.classList.remove('bg-irregular-task');
+            // Regular選択時に、小分類を更新（フリー入力項目を削除するため）
+            updateShoCategories();
+        } else {
+            cardElement.classList.remove('bg-regular-task');
+            cardElement.classList.add('bg-irregular-task');
+            // Irregular選択時に、小分類を更新（フリー入力項目を追加するため）
+            updateShoCategories();
+        }
+    });
+
+    // モーダルの準備
+    const regularTypeModal = new bootstrap.Modal(document.getElementById('regularTypeModal'));
+    
+    // ページ読み込み時にモーダルを表示
+    setTimeout(() => {
+        regularTypeModal.show();
+    }, 500);
+    
+    // 分類モーダルの準備
+    const classificationModal = new bootstrap.Modal(document.getElementById('classificationModal'));
+    
+    // モーダルのボタン処理
+    document.getElementById('selectRegularButton').addEventListener('click', function() {
+        regularSwitch.checked = true;
+        cardElement.classList.add('bg-regular-task');
+        cardElement.classList.remove('bg-irregular-task');
+        regularTypeModal.hide();
+        // 定型タスクを選択した場合は分類モーダルを表示
+        setTimeout(() => {
+            // 分類モーダルを表示する前に初期化処理を実行
+            initClassificationModal();
+            classificationModal.show();
+            // モーダル表示後に一度テンプレート検索を実行
+            setTimeout(searchTemplateOnClassificationChange, 300);
+        }, 500);
+    });
+    
+    document.getElementById('selectIrregularButton').addEventListener('click', function() {
+        // Irregular状態に設定
+        regularSwitch.checked = false;
+        cardElement.classList.remove('bg-regular-task');
+        cardElement.classList.add('bg-irregular-task');
         
-        function applyStyling() {{
-            if (cardElement) {{
-                if (regularSwitch.checked) {{
-                    cardElement.classList.remove('bg-irregular-task');
-                    cardElement.classList.add('bg-regular-task');
-                }} else {{
-                    cardElement.classList.remove('bg-regular-task');
-                    cardElement.classList.add('bg-irregular-task');
-                }}
-            }}
-        }}
+        // モーダルを閉じる前に小分類セレクトボックスに直接フリー入力オプションを追加
+        const shoSelect = document.getElementById('smallCategory');
+        const smallCategoryContainer = shoSelect.parentElement;
         
-        applyStyling();
-        regularSwitch.addEventListener('change', applyStyling);
-    }}
-}});
+        regularTypeModal.hide();
+        
+        // モーダルが閉じた直後に実行
+        setTimeout(() => {
+            console.log('モーダル閉じた直後の小分類処理');
+            
+            // まず通常のupdateShoCategoriesを実行
+            updateShoCategories();
+            
+            // その後に直接小分類にフリー入力を強制的に追加
+            setTimeout(() => {
+                // 再度要素を取得（モーダル閉じた後にDOMが更新されている可能性があるため）
+                const shoSelect = document.getElementById('smallCategory');
+                const smallCategoryContainer = shoSelect ? shoSelect.parentElement : null;
+                
+                if (shoSelect && smallCategoryContainer) {
+                    // フリー入力オプションがないか確認
+                    let customOption = Array.from(shoSelect.options).find(option => option.value === "__custom__");
+                    
+                    // フリー入力オプションがない場合は追加
+                    if (!customOption) {
+                        console.log('フリー入力オプションを直接追加');
+                        customOption = document.createElement('option');
+                        customOption.value = "__custom__";
+                        customOption.textContent = "フリー入力";
+                        shoSelect.appendChild(customOption);
+                    }
+                    
+                    // カスタム入力フィールドがないか確認
+                    let customInput = document.getElementById('custom_smallCategory');
+                    
+                    // カスタム入力フィールドがない場合は作成
+                    if (!customInput) {
+                        console.log('カスタム入力フィールドを直接追加');
+                        customInput = document.createElement('input');
+                        customInput.type = 'text';
+                        customInput.id = 'custom_smallCategory';
+                        customInput.name = 'custom_smallCategory';
+                        customInput.className = 'form-control mt-2';
+                        customInput.placeholder = 'カスタム小分類を入力';
+                        customInput.style.display = 'none'; // 初期状態では非表示
+                        
+                        // 小分類コンテナに追加
+                        smallCategoryContainer.appendChild(customInput);
+                        
+                        // セレクトボックスの変更イベントを設定
+                        shoSelect.addEventListener('change', function() {
+                            if (this.value === "__custom__") {
+                                customInput.style.display = 'block';
+                                customInput.focus();
+                            } else {
+                                customInput.style.display = 'none';
+                            }
+                        });
+                    }
+                    
+                    // 再度updateShoCategoriesを呼び出して確実に更新
+                    setTimeout(() => {
+                        updateShoCategories();
+                    }, 300);
+                }
+            }, 100);
+        }, 50);
+    });
+    
+    // 分類モーダルの大分類更新処理
+    window.updateModalDaiCategories = function() {
+        const groupSelect = document.getElementById('modalGroup');
+        const daiSelect = document.getElementById('modalDai');
+        const selectedGroup = groupSelect.value;
+        
+        // 大分類のオプションをクリア
+        daiSelect.innerHTML = '<option value="">選択してください</option>';
+        
+        // 選択されたグループに基づいて大分類を更新
+        const uniqueDai = new Set();
+        classifications.forEach(item => {
+            if (selectedGroup === '' || item.group === selectedGroup) {
+                uniqueDai.add(item.dai);
+            }
+        });
+        
+        // 大分類のオプションを追加
+        Array.from(uniqueDai).sort().forEach(dai => {
+            const option = document.createElement('option');
+            option.value = dai;
+            option.textContent = dai;
+            daiSelect.appendChild(option);
+        });
+        updateModalChuCategories();
+    };
+    
+    // 分類モーダルの中分類更新処理
+    window.updateModalChuCategories = function() {
+        const groupSelect = document.getElementById('modalGroup');
+        const daiSelect = document.getElementById('modalDai');
+        const chuSelect = document.getElementById('modalChu');
+        const selectedGroup = groupSelect.value;
+        const selectedDai = daiSelect.value;
+        
+        // 中分類のオプションをクリア
+        chuSelect.innerHTML = '<option value="">選択してください</option>';
+        
+        // 選択されたグループと大分類に基づいて中分類を更新
+        const uniqueChu = new Set();
+        classifications.forEach(item => {
+            if ((selectedGroup === '' || item.group === selectedGroup) && 
+                (selectedDai === '' || item.dai === selectedDai)) {
+                uniqueChu.add(item.chu);
+            }
+        });
+        
+        // 中分類のオプションを追加
+        Array.from(uniqueChu).sort().forEach(chu => {
+            const option = document.createElement('option');
+            option.value = chu;
+            option.textContent = chu;
+            chuSelect.appendChild(option);
+        });
+        updateModalShoCategories();
+    };
+    
+    // 分類モーダルの小分類更新処理
+    window.updateModalShoCategories = function() {
+        const groupSelect = document.getElementById('modalGroup');
+        const daiSelect = document.getElementById('modalDai');
+        const chuSelect = document.getElementById('modalChu');
+        const shoSelect = document.getElementById('modalSho');
+        const selectedGroup = groupSelect.value;
+        const selectedDai = daiSelect.value;
+        const selectedChu = chuSelect.value;
+        
+        // 小分類のオプションをクリア
+        shoSelect.innerHTML = '<option value="">選択してください</option>';
+        
+        // 選択されたグループ、大分類、中分類に基づいて小分類を更新
+        const uniqueSho = new Set();
+        classifications.forEach(item => {
+            if ((selectedGroup === '' || item.group === selectedGroup) && 
+                (selectedDai === '' || item.dai === selectedDai) && 
+                (selectedChu === '' || item.chu === selectedChu)) {
+                uniqueSho.add(item.sho);
+            }
+        });
+        
+        // 小分類のオプションを追加
+        Array.from(uniqueSho).sort().forEach(sho => {
+            const option = document.createElement('option');
+            option.value = sho;
+            option.textContent = sho;
+            shoSelect.appendChild(option);
+        });
+    };
+    
+    // 分類適用ボタンの処理
+    document.getElementById('applyClassificationButton').addEventListener('click', function() {
+        // モーダルから選択した値を取得
+        const selectedGroup = document.getElementById('modalGroup').value;
+        const selectedDai = document.getElementById('modalDai').value;
+        const selectedChu = document.getElementById('modalChu').value;
+        const selectedSho = document.getElementById('modalSho').value;
+        
+        console.log('Selected values:', selectedGroup, selectedDai, selectedChu, selectedSho);
+        
+        // まずフォームのセレクトボックスに選択肢を読み込む処理を実行
+        // グループの値を設定し、それに基づいて大分類の選択肢を更新
+        const groupSelect = document.getElementById('group');
+        if (groupSelect) {
+            groupSelect.value = selectedGroup;
+            // 大分類の選択肢を更新するために、change イベントを発火
+            const event = new Event('change');
+            groupSelect.dispatchEvent(event);
+        }
+        
+        // 少し待ってから大分類の値を設定（選択肢が更新されるのを待つ）
+        setTimeout(() => {
+            const daiSelect = document.getElementById('majorCategory');
+            if (daiSelect) {
+                daiSelect.value = selectedDai;
+                // 中分類の選択肢を更新するために、change イベントを発火
+                const event = new Event('change');
+                daiSelect.dispatchEvent(event);
+            }
+            
+            // さらに少し待ってから中分類の値を設定
+            setTimeout(() => {
+                const chuSelect = document.getElementById('mediumCategory');
+                if (chuSelect) {
+                    chuSelect.value = selectedChu;
+                    // 小分類の選択肢を更新するために、change イベントを発火
+                    const event = new Event('change');
+                    chuSelect.dispatchEvent(event);
+                }
+                
+                // 最後に小分類の値を設定
+                setTimeout(() => {
+                    const shoSelect = document.getElementById('smallCategory');
+                    if (shoSelect) {
+                        shoSelect.value = selectedSho;
+                    }
+                    
+                    console.log('Final form values set:', 
+                        groupSelect ? groupSelect.value : 'not found',
+                        daiSelect ? daiSelect.value : 'not found',
+                        chuSelect ? chuSelect.value : 'not found',
+                        shoSelect ? shoSelect.value : 'not found'
+                    );
+                    
+                    // テンプレートが選択されている場合は自動的にテンプレートを適用
+                    if (window.currentMatchingTemplate) {
+                        console.log('Applying template:', window.currentMatchingTemplate.name);
+                        
+                        // タスク内容フィールドにテンプレートの内容を適用
+                        const contentTextarea = document.getElementById('content');
+                        if (contentTextarea) {
+                            let templateContent = window.currentMatchingTemplate.contents;
+                            
+                            // 入力フィールドが存在する場合、その値でプレースホルダーを置き換え
+                            if (window.currentMatchingTemplate.input_contents && window.currentMatchingTemplate.input_contents.length > 0) {
+                                console.log('Applying template input:', window.currentMatchingTemplate.input_contents);
+                                window.currentMatchingTemplate.input_contents.forEach(function(inputItem) {
+                                    let inputValue = '';
+                                    
+                                    // checkbox_with_textタイプの場合の処理
+                                    if (inputItem.type === 'checkbox_with_text') {
+                                        const checkboxField = document.getElementById('modal_template_input_checkbox_' + inputItem.input_name);
+                                        const textField = document.getElementById('modal_template_input_text_' + inputItem.input_name);
+                                        
+                                        // テンプレートで定義されたカスタムテキストがあれば使用、なければデフォルト値を使用
+                                        let checkValue = '';
+                                        if (checkboxField && checkboxField.checked) {
+                                            checkValue = inputItem.checked_text || 'はい';
+                                        } else {
+                                            checkValue = inputItem.unchecked_text || 'いいえ';
+                                        }
+                                        let textValue = textField && textField.value ? textField.value : '';
+                                        
+                                        console.log('Checkbox with text values:', inputItem.input_name, checkValue, textValue);
+                                        
+                                        // チェックボックスとテキストの両方の値を組み合わせる
+                                        inputValue = checkValue + (textValue ? ' (' + textValue + ')' : '');
+                                        
+                                        // テンプレートの内容の後ろに入力フィールドの名前と値を改行して追加
+                                        templateContent = templateContent + '\\n' + inputItem.input_name + ':' + inputValue;
+                                    } 
+                                    // 通常の入力フィールドの場合
+                                    else {
+                                        const inputField = document.getElementById('modal_template_input_' + inputItem.input_name);
+                                        if (inputField && inputField.value) {
+                                            console.log('Found input field:', inputField.id, inputField.value);
+                                            
+                                            // チェックボックスの場合、チェック状態に応じて「はい/いいえ」を設定
+                                            if (inputField.type === 'checkbox') {
+                                                // テンプレートで定義されたカスタムテキストがあれば使用、なければデフォルト値を使用
+                                                if (inputField.checked) {
+                                                    inputValue = inputItem.checked_text || 'はい';
+                                                } else {
+                                                    inputValue = inputItem.unchecked_text || 'いいえ';
+                                                }
+                                                console.log('Checkbox value:', inputItem.input_name, inputValue);
+                                            } else {
+                                                inputValue = inputField.value;
+                                            }
+                                            
+                                            // テンプレートの内容の後ろに入力フィールドの名前と値を改行して追加
+                                            templateContent = templateContent + '\\n' + inputItem.input_name.replace("input_","") + ':' + inputValue;
+                                        }
+                                    }
+                                });
+                            }
+                            console.log('Applying template content:', templateContent);
+                            
+                            contentTextarea.value = templateContent;
+                        }
+                    }
+                }, 100);
+            }, 100);
+        }, 100);
+        
+        // モーダルを閉じる
+        classificationModal.hide();
+    });
+    
+    // フォーム送信時にカスタム小分類の値を処理
+    const taskForm = document.querySelector('form[action="./index.py?mode=write"]');
+    if (taskForm) {
+        taskForm.addEventListener('submit', function(e) {
+            // 一度送信を中断して小分類の値を確認して処理
+            e.preventDefault();
+            
+            // Irregularかつフリー入力が選択されている場合の処理
+            const regularSwitch = document.getElementById('create_regular');
+            const shoSelect = document.getElementById('smallCategory');
+            const customInput = document.getElementById('custom_smallCategory');
+            
+            if (!regularSwitch.checked && // Irregularが選択されている
+                shoSelect && shoSelect.value === "__custom__" && // フリー入力が選択されている
+                customInput && customInput.value.trim() !== "") { // カスタム入力がある
+                
+                console.log('カスタム小分類値を処理中:', customInput.value.trim());
+                
+                // 既存の小分類のセレクトボックスを正しい値に更新
+                // セレクトボックスを無効化するのではなく、実際の値を設定
+                // そうしないと表示時に__custom__が表示されてしまう
+                
+                // カスタム入力値をセレクトボックスに追加
+                const newOption = document.createElement('option');
+                newOption.value = customInput.value.trim();
+                newOption.textContent = customInput.value.trim();
+                shoSelect.appendChild(newOption);
+                
+                // セレクトボックスで追加した新しい値を選択
+                shoSelect.value = customInput.value.trim();
+                
+                console.log('カスタム小分類値を設定完了:', shoSelect.value);
+            }
+            
+            // 送信を再開
+            setTimeout(function() {
+                taskForm.submit();
+            }, 100);
+        });
+    }
+    
+    // 分類モーダル初期化処理
+    function initClassificationModal() {
+        // 各セレクトボックスにイベントリスナーを追加
+        document.getElementById('modalGroup').addEventListener('change', function() {
+            // 大分類更新処理はインライン属性で設定済み
+            // 変更後にテンプレート検索を実行
+            setTimeout(searchTemplateOnClassificationChange, 50);
+        });
+        
+        document.getElementById('modalDai').addEventListener('change', function() {
+            // 中分類更新処理はインライン属性で設定済み
+            // 変更後にテンプレート検索を実行
+            setTimeout(searchTemplateOnClassificationChange, 50);
+        });
+        
+        document.getElementById('modalChu').addEventListener('change', function() {
+            // 小分類更新処理はインライン属性で設定済み
+            // 変更後にテンプレート検索を実行
+            setTimeout(searchTemplateOnClassificationChange, 50);
+        });
+        
+        document.getElementById('modalSho').addEventListener('change', function() {
+            // 変更後にテンプレート検索を実行
+            setTimeout(searchTemplateOnClassificationChange, 50);
+        });
+    }
+
+    // 分類選択時にリアルタイムでテンプレートを検索する関数
+    function searchTemplateOnClassificationChange() {
+        // 現在選択されている分類を取得
+        const selectedGroup = document.getElementById('modalGroup').value;
+        const selectedDai = document.getElementById('modalDai').value;
+        const selectedChu = document.getElementById('modalChu').value;
+        const selectedSho = document.getElementById('modalSho').value;
+        
+        console.log('Searching for template matching:', selectedGroup, selectedDai, selectedChu, selectedSho);
+        
+        // テンプレートの検索 - すべての値が完全一致するテンプレートのみを表示
+        let matchingTemplate = null;
+        
+        // すべての分類（グループ、大分類、中分類、小分類）が選択されている場合のみテンプレートを探す
+        if (selectedGroup && selectedDai && selectedChu && selectedSho) {
+            matchingTemplate = allTemplates.find(template => {
+                // 配列になった分類情報に対応するため、includesメソッドを使用してチェック
+                return Array.isArray(template.group) && template.group.includes(selectedGroup) && 
+                       Array.isArray(template.大分類) && template.大分類.includes(selectedDai) && 
+                       Array.isArray(template.中分類) && template.中分類.includes(selectedChu) && 
+                       Array.isArray(template.小分類) && template.小分類.includes(selectedSho);
+            });
+        }
+        
+        // テンプレート表示エリアを取得
+        const templateArea = document.getElementById('modalTemplateArea');
+        const templateName = document.getElementById('modalTemplateName');
+        const templateContent = document.getElementById('modalTemplateContent');
+        const templateInputsContainer = document.getElementById('modalTemplateInputsContainer');
+        
+        // テンプレートが見つかった場合の処理
+        if (matchingTemplate) {
+            console.log('Found matching template:', matchingTemplate.name);
+            templateArea.classList.remove('d-none');
+            templateName.value = matchingTemplate.name;
+            templateContent.value = matchingTemplate.contents;
+            // テンプレート内容のテキストエリアを非表示に
+            document.querySelector('.mb-3 label[for="templateContents"]').parentElement.style.display = 'none';
+            
+            // 入力フィールドを表示
+            templateInputsContainer.innerHTML = '';
+            
+            console.log('Template input contents:', matchingTemplate.input_contents);
+            
+            if (matchingTemplate.input_contents && matchingTemplate.input_contents.length > 0) {
+                matchingTemplate.input_contents.forEach(function(inputItem) {
+                    const formGroup = document.createElement('div');
+                    formGroup.classList.add('mb-3');
+                    
+                    // チェックボックスの場合はinnerHTMLでスイッチスタイルの要素を生成
+                    if (inputItem.type === 'checkbox') {
+                        formGroup.innerHTML = `
+                            <div class="form-check form-switch">
+                                <input type="checkbox" class="form-check-input" id="modal_template_input_${inputItem.input_name}" data-input-name="${inputItem.input_name}">
+                                <label class="form-check-label" for="modal_template_input_${inputItem.input_name}">${inputItem.input_name}</label>
+                            </div>
+                        `;
+                    } 
+                    // テキスト付きチェックボックスの場合
+                    else if (inputItem.type === 'checkbox_with_text') {
+                        formGroup.innerHTML = `
+                            <div class="mb-2">
+                                <label class="form-label">${inputItem.input_name}</label>
+                            </div>
+                            <div class="d-flex">
+                                <div class="form-check form-switch me-3">
+                                    <input type="checkbox" class="form-check-input" id="modal_template_input_checkbox_${inputItem.input_name}" data-input-name="${inputItem.input_name}_checkbox">
+                                    <label class="form-check-label" for="modal_template_input_checkbox_${inputItem.input_name}">チェック</label>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <input type="text" class="form-control" id="modal_template_input_text_${inputItem.input_name}" data-input-name="${inputItem.input_name}_text" placeholder="${inputItem.text_label || 'テキストを入力'}">
+                                </div>
+                            </div>
+                        `;
+                    }
+                    // テキストエリアの場合
+                    else if (inputItem.type === 'textarea') {
+                        formGroup.innerHTML = `
+                            <label class="form-label">${inputItem.input_name}</label>
+                            <textarea class="form-control" id="modal_template_input_${inputItem.input_name}" data-input-name="${inputItem.input_name}"></textarea>
+                        `;
+                    }
+                    // セレクトの場合
+                    else if (inputItem.type === 'select' && inputItem.options) {
+                        let optionsHtml = '';
+                        inputItem.options.forEach(function(opt) {
+                            optionsHtml += `<option value="${opt}">${opt}</option>`;
+                        });
+                        
+                        formGroup.innerHTML = `
+                            <label class="form-label">${inputItem.input_name}</label>
+                            <select class="form-select" id="modal_template_input_${inputItem.input_name}" data-input-name="${inputItem.input_name}">${optionsHtml}</select>
+                        `;
+                    }
+                    // その他の入力タイプ（テキストなど）
+                    else {
+                        const inputType = inputItem.type || 'text';
+                        formGroup.innerHTML = `
+                            <label class="form-label">${inputItem.input_name}</label>
+                            <input type="${inputType}" class="form-control" id="modal_template_input_${inputItem.input_name}" data-input-name="${inputItem.input_name}">
+                        `;
+                    }
+                    
+                    templateInputsContainer.appendChild(formGroup);
+                });
+            }
+            window.currentMatchingTemplate = matchingTemplate;
+        } else {
+            // テンプレートが見つからない場合は非表示
+            templateArea.classList.add('d-none');
+            templateName.value = '';
+            templateContent.value = '';
+            templateInputsContainer.innerHTML = '';
+            window.currentMatchingTemplate = null;
+        }
+    }
+    
+    // 分類モーダルの各セレクトボックスにchangeイベントを設定
+    document.getElementById('modalGroup').addEventListener('change', searchTemplateOnClassificationChange);
+    document.getElementById('modalDai').addEventListener('change', searchTemplateOnClassificationChange);
+    document.getElementById('modalChu').addEventListener('change', searchTemplateOnClassificationChange);
+    document.getElementById('modalSho').addEventListener('change', searchTemplateOnClassificationChange);
+    
+    // 選択された分類に一致するテンプレートを探して表示する関数
+    function findMatchingTemplate(group, dai, chu, sho) {
+        if (!allTemplates || allTemplates.length === 0) {
+            console.log('No templates available');
+            return;
+        }
+        
+        console.log('Searching for template matching:', group, dai, chu, sho);
+        
+        // 全ての値が一致するテンプレートを探す
+        let matchingTemplate = allTemplates.find(template => {
+            return template.group === group && 
+                   template.大分類 === dai && 
+                   template.中分類 === chu && 
+                   template.小分類 === sho;
+        });
+        
+        // 完全一致しない場合は、グループと大分類だけで探す
+        if (!matchingTemplate) {
+            matchingTemplate = allTemplates.find(template => {
+                return template.group === group && template.大分類 === dai;
+            });
+        }
+        
+        // それでも見つからない場合は、グループだけで探す
+        if (!matchingTemplate) {
+            matchingTemplate = allTemplates.find(template => {
+                return template.group === group;
+            });
+        }
+        
+        if (matchingTemplate) {
+            console.log('Found matching template:', matchingTemplate.name);
+            
+            // テンプレートモーダルを表示するための準備
+            setTimeout(() => {
+                const templateModal = new bootstrap.Modal(document.getElementById('templateModal'));
+                
+                // テンプレートを選択した状態にする
+                currentTargetTextareaId = 'content'; // 内容フィールドのID
+                
+                // テンプレートの選択肢を更新
+                const templateSelect = document.getElementById('templateSelect');
+                templateSelect.innerHTML = '<option value="">選択してください</option>';
+                
+                allTemplates.forEach(function(template, index) {
+                    const option = document.createElement('option');
+                    option.value = index;
+                    option.textContent = template.name;
+                    // 一致するテンプレートを選択状態にする
+                    if (template === matchingTemplate) {
+                        option.selected = true;
+                    }
+                    templateSelect.appendChild(option);
+                });
+                
+                // 選択したテンプレートの内容を表示
+                const templateContents = document.getElementById('templateContents');
+                templateContents.value = matchingTemplate.contents;
+                
+                // 入力フィールドも表示
+                const templateInputsContainer = document.getElementById('templateInputsContainer');
+                templateInputsContainer.innerHTML = '';
+                
+                if (matchingTemplate.input_contents) {
+                    matchingTemplate.input_contents.forEach(function(inputItem) {
+                        const formGroup = document.createElement('div');
+                        formGroup.classList.add('mb-3');
+                        
+                        const label = document.createElement('label');
+                        label.classList.add('form-label');
+                        label.textContent = inputItem.input_name;
+                        formGroup.appendChild(label);
+                        
+                        let input;
+                        
+                        if (inputItem.type === 'select' && inputItem.options) {
+                            input = document.createElement('select');
+                            input.classList.add('form-select');
+                            
+                            inputItem.options.forEach(function(optionText) {
+                                const option = document.createElement('option');
+                                option.value = optionText;
+                                option.textContent = optionText;
+                                input.appendChild(option);
+                            });
+                        } else if (inputItem.type === 'number') {
+                            input = document.createElement('input');
+                            input.type = 'number';
+                            input.classList.add('form-control');
+                        } else if (inputItem.type === 'checkbox') {
+                            // Bootstrapのフォームスイッチ用のラッパーを作成
+                            const wrapper = document.createElement('div');
+                            wrapper.classList.add('form-check', 'form-switch');
+                            
+                            // チェックボックス入力を作成
+                            input = document.createElement('input');
+                            input.type = 'checkbox';
+                            input.classList.add('form-check-input');
+                            // 固有IDを設定
+                            const uniqueId = 'checkbox_' + Math.random().toString(36).substr(2, 9);
+                            input.id = uniqueId;
+                            
+                            // ラベルをチェックボックスに関連付け
+                            const checkboxLabel = document.createElement('label');
+                            checkboxLabel.classList.add('form-check-label');
+                            checkboxLabel.setAttribute('for', uniqueId);
+                            checkboxLabel.textContent = inputItem.input_name;
+                            
+                            // ラッパーにチェックボックスとラベルを追加
+                            wrapper.appendChild(input);
+                            wrapper.appendChild(checkboxLabel);
+                            
+                            // 元のフォームグループにラッパーを追加
+                            formGroup.innerHTML = '';
+                            formGroup.appendChild(wrapper);
+                            
+                            // input要素のIDを設定
+                            input.id = 'template_input_' + inputItem.input_name;
+                            input.dataset.inputName = inputItem.input_name;
+                            
+                            // チェックボックスを処理したので、この後の処理をスキップ
+                            return;
+                        } else {
+                            input = document.createElement('input');
+                            input.type = 'text';
+                            input.classList.add('form-control');
+                        }
+                        
+                        input.id = 'template_input_' + inputItem.input_name;
+                        input.dataset.inputName = inputItem.input_name;
+                        formGroup.appendChild(input);
+                        templateInputsContainer.appendChild(formGroup);
+                    });
+                }
+                
+                // テンプレートモーダルを表示
+                templateModal.show();
+            }, 300);
+        } else {
+            console.log('No matching template found');
+        }
+    }
+});
 </script>
 """
 
@@ -1517,6 +2186,64 @@ document.addEventListener('DOMContentLoaded', function() {{
         print(TEMPLATE_MODAL_HTML_SCRIPT) # 先に関数定義を含むスクリプトを出力
         templates_json_data = json.dumps(load_templates())
         print(f"<script>setTemplatesData({templates_json_data});</script>")
+        footer()
+
+# レポートモード --------------------------------------------------------------------------------------------
+    elif mode=="report":
+        header()
+        nav()
+
+        # レポート対象タスクを取得
+        report_tasks = []
+        for row in db.fetch_all():
+            if row.get("report_flag", 0) == 1:
+                report_tasks.append(_row_to_detail(row))
+
+        # レポート表の出力
+        print("""
+        <div class="container my-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2>日報（レポート対象タスク）</h2>
+                <button class="btn btn-secondary" onclick="window.print();">
+                    <i class="bi bi-printer"></i> 印刷 / PDF
+                </button>
+            </div>
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped mt-3">
+                    <thead class="table-light">
+                        <tr>
+                            <th>グループ</th>
+                            <th>大分類</th>
+                            <th>中分類</th>
+                            <th>小分類</th>
+                            <th>内容</th>
+                            <th>作成日</th>
+                            <th>更新日</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+        """)
+        if report_tasks:
+            for task in report_tasks:
+                content_html = task.get('content', '').replace('\n', '<br>')
+                print(f"""<tr>
+                            <td>{task.get('groupCategory', '')}</td>
+                            <td>{task.get('大分類', '')}</td>
+                            <td>{task.get('中分類', '')}</td>
+                            <td>{task.get('小分類', '')}</td>
+                            <td>{content_html}</td>
+                            <td>{parse_datetime_flexible(task.get('create_date', ''))}</td>
+                            <td>{parse_datetime_flexible(task.get('update_date', ''))}</td>
+                        </tr>""")
+        else:
+            print("""<tr><td colspan='7' class='text-center'>レポート対象のタスクはありません</td></tr>""")
+
+        print("""
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        """)
         footer()
 
 # 更新処理 --------------------------------------------------------------------------------------------
@@ -2788,7 +3515,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         # タスク辞書を構築してデータベースへ登録
         task_dict = {
-            "id": create_task_id or str(uuid.uuid4()),
+            "id": str(uuid.uuid4()),
             "name": create_task_name,
             "status": create_state_select or "CONTINUE",
             "create_date": create_create_datetime or datetime.datetime.utcnow().isoformat(timespec="seconds"),
