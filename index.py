@@ -111,6 +111,9 @@ def _row_to_detail(row):
     if row.get("status") == "COMPLETE":
         detail["status"] = "完了"
         detail["card_color"] = " bg-secondary"
+    elif row.get("status") == "PENDING":
+        detail["status"] = "様子見"
+        detail["card_color"] = ""
     else:
         detail["status"] = "継続"
         detail["card_color"] = ""
@@ -1106,9 +1109,12 @@ if __name__ == '__main__':
 """
         # ステータス選択のHTML修正
         status_selected_continue = ""
+        status_selected_pending = ""
         status_selected_complete = ""
         if target_task_detail['status'] == "完了":
             status_selected_complete = "selected"
+        elif target_task_detail['status'] == "様子見":
+            status_selected_pending = "selected"
         else:
             status_selected_continue = "selected"
             
@@ -1117,6 +1123,7 @@ if __name__ == '__main__':
     <label for="state" class="form-label"><i class="bi bi-flag"></i> ステータス</label>
     <select id="state" name="update_state_select" class="form-select">
         <option value="CONTINUE" {status_selected_continue}>継続</option>
+        <option value="PENDING" {status_selected_pending}>様子見</option>
         <option value="COMPLETE" {status_selected_complete}>完了</option>
     </select>
 </div>"""
@@ -2283,7 +2290,8 @@ document.addEventListener('DOMContentLoaded', function() {
         # 完了ステータスの場合は complete_date を付与
         if update_state_select == "COMPLETE" and update_update_datetime:
             updates["complete_date"] = update_update_datetime
-        elif update_state_select == "CONTINUE":
+        else:
+            # 未完了ステータス（継続・様子見など）は complete_date をリセット
             updates["complete_date"] = None
 
         try:
@@ -2336,7 +2344,8 @@ document.addEventListener('DOMContentLoaded', function() {
 <div class="form-group mb-3">
     <label for="inputState" class="form-label"><i class="bi bi-list-check"></i> 状態</label>
     <select id="inputState" class="form-select" name="create_state_select">
-        <option selected value="CONTINUE">継続</option>
+        <option value="CONTINUE" selected>継続</option>
+        <option value="PENDING">様子見</option>
         <option value="COMPLETE">完了</option>
     </select>
 </div>
