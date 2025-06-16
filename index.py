@@ -2218,8 +2218,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <th>小分類</th>
                             <th>タイトル</th>
                             <th>内容</th>
-                            <th>作成日</th>
-                            <th>更新日</th>
+                            <th>日時</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -2234,11 +2233,10 @@ document.addEventListener('DOMContentLoaded', function() {
                             <td>{task.get('小分類', '')}</td>
                             <td>{task.get('name', '')}</td>
                             <td>{content_html}</td>
-                            <td>{parse_datetime_flexible(task.get('create_date', ''))}</td>
-                            <td>{parse_datetime_flexible(task.get('update_date', ''))}</td>
+                            <td>{parse_datetime_flexible(task.get('update_date', ''))}<br>({parse_datetime_flexible(task.get('create_date', ''))})</td>
                         </tr>""")
         else:
-            print("""<tr><td colspan='8' class='text-center'>レポート対象のタスクはありません</td></tr>""")
+            print("""<tr><td colspan='7' class='text-center'>レポート対象のタスクはありません</td></tr>""")
 
         print("""
                     </tbody>
