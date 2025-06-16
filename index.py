@@ -2226,6 +2226,18 @@ document.addEventListener('DOMContentLoaded', function() {
         if report_tasks:
             for task in report_tasks:
                 content_html = task.get('content', '').replace('\n', '<br>')
+                # 経過日数計算
+                create_raw = task.get('create_date', '')
+                diff_days = ''
+                if create_raw:
+                    iso_str = create_raw
+                    if re.match(r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$', iso_str):
+                        iso_str += ':00'
+                    try:
+                        create_dt = datetime.datetime.fromisoformat(iso_str)
+                        diff_days = (datetime.datetime.utcnow() - create_dt).days
+                    except Exception:
+                        diff_days = ''
                 print(f"""<tr>
                             <td>{task.get('groupCategory', '')}</td>
                             <td>{task.get('大分類', '')}</td>
@@ -2233,7 +2245,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             <td>{task.get('小分類', '')}</td>
                             <td>{task.get('name', '')}</td>
                             <td>{content_html}</td>
-                            <td>{parse_datetime_flexible(task.get('update_date', ''))}<br>({parse_datetime_flexible(task.get('create_date', ''))})</td>
+                            <td>経過日数：{diff_days}日<br>{parse_datetime_flexible(task.get('update_date', ''))}<br>({parse_datetime_flexible(task.get('create_date', ''))})</td>
                         </tr>""")
         else:
             print("""<tr><td colspan='7' class='text-center'>レポート対象のタスクはありません</td></tr>""")
