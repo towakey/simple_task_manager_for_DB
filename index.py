@@ -2219,10 +2219,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <table class="table table-bordered table-striped mt-3">
                     <thead class="table-light">
                         <tr>
-                            <th>グループ</th>
-                            <th>大分類</th>
-                            <th>中分類</th>
-                            <th>小分類</th>
+                            <th>分類</th>
                             <th>タイトル</th>
                             <th>状態</th>
                             <th>内容</th>
@@ -2247,17 +2244,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     except Exception:
                         diff_days = ''
                 print(f"""<tr>
-                            <td>{task.get('groupCategory', '')}</td>
-                            <td>{task.get('大分類', '')}</td>
-                            <td>{task.get('中分類', '')}</td>
-                            <td>{task.get('小分類', '')}</td>
+                            <td>{task.get('groupCategory', '')}<br>{task.get('大分類', '')}_{task.get('中分類', '')}_{task.get('小分類', '')}</td>
                             <td>{task.get('name', '')}</td>
                             <td>{task.get('status', '')}</td>
                             <td>{content_html}</td>
                             <td>経過日数：{diff_days}日<br>{parse_datetime_flexible(task.get('update_date', ''))}<br>({parse_datetime_flexible(task.get('create_date', ''))})</td>
                         </tr>""")
         else:
-            print("""<tr><td colspan='8' class='text-center'>レポート対象のタスクはありません</td></tr>""")
+            print("""<tr><td colspan='5' class='text-center'>レポート対象のタスクはありません</td></tr>""")
 
         print("""
                     </tbody>
